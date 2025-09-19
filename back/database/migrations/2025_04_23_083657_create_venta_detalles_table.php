@@ -15,8 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('venta_id')->constrained('ventas');
             $table->foreignId('producto_id')->constrained('productos');
+            $table->unsignedBigInteger('compra_detalle_id')->nullable();
+            $table->foreign('compra_detalle_id')->references('id')->on('compra_detalles');
+            $table->string('nombre')->nullable();
             $table->integer('cantidad')->nullable();
             $table->string('unidad')->nullable();
+            $table->string('lote')->nullable();
+            $table->date('fecha_vencimiento')->nullable();
             $table->integer('precio')->nullable();
             $table->softDeletes();
             $table->timestamps();

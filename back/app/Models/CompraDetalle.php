@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CompraDetalle extends Model{
+    use SoftDeletes;
     protected $fillable = [
         'compra_id',
         'user_id',
@@ -13,6 +15,7 @@ class CompraDetalle extends Model{
         'nombre',
         'precio',
         'cantidad',
+        'cantidad_venta',
         'total',
         'factor',
         'precio13',

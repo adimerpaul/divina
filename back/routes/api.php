@@ -21,9 +21,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/usersSucursal', [App\Http\Controllers\UserController::class, 'usersSucursal']);
 
 
+    Route::get('/productos/{id}/historial-compras-ventas', [App\Http\Controllers\ProductoController::class, 'historialComprasVentas']);
+
     Route::post('/productos', [App\Http\Controllers\ProductoController::class, 'store']);
     Route::get('/productosAll', [App\Http\Controllers\ProductoController::class, 'productosAll']);
     Route::get('/productos', [App\Http\Controllers\ProductoController::class, 'index']);
+    Route::get('/productosStock', [App\Http\Controllers\ProductoController::class, 'productosStock']);
     Route::put('/productos/{producto}', [App\Http\Controllers\ProductoController::class, 'update']);
     Route::delete('/productos/{producto}', [App\Http\Controllers\ProductoController::class, 'destroy']);
 

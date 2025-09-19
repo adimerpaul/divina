@@ -82,6 +82,7 @@
         <th>Acciones</th>
         <th>ID</th>
         <th>Fecha</th>
+        <th>Factura</th>
         <th>Proveedor</th>
         <th>Usuario</th>
         <th>Estado</th>
@@ -106,6 +107,7 @@
         </td>
         <td>{{ compra.id }}</td>
         <td>{{ compra.fecha }} {{ compra.hora }}</td>
+        <td>{{ compra.nro_factura }}</td>
         <td>{{ compra.proveedor?.nombre }}</td>
         <td>{{ compra.user?.name }}</td>
         <td><q-chip :color="compra.estado === 'Activo' ? 'positive' : 'negative'" class="text-white" dense>{{ compra.estado }}</q-chip></td>

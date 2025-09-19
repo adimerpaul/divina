@@ -39,10 +39,22 @@ class Producto extends Model{
         'updated_at',
         'deleted_at'
     ];
-    protected $appends = [
-        'stock',
-    ];
-    public function getStockAttribute(){
-        return $this->stockAlmacen + $this->stockChallgua + $this->stockSocavon + $this->stockCatalina;
+//    protected $appends = [
+//        'stock',
+//    ];
+//    public function getStockAttribute(){
+//        $productoCompra = CompraDetalle::where('producto_id', $this->id)
+//            ->where('estado', 'Activo')
+//            ->sum('cantidad_venta');
+//        return $productoCompra;
+//    }
+
+
+//    boot stock
+//    protected static function booted()
+//    {
+//    }
+    function comprasDetalles(){
+        return $this->hasMany(CompraDetalle::class);
     }
 }

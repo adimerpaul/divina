@@ -3,7 +3,7 @@
     <q-card flat bordered>
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">Compras</div>
-        <q-btn flat round dense icon="arrow_back" @click="$router.go(-1)" />
+        <q-btn flat round dense icon="arrow_back" @click="$router.back()" class="q-mr-sm" />
       </q-card-section>
 
       <q-card-section class="q-pa-none">
@@ -115,17 +115,59 @@
                         {{ $filters.textUpper( producto.producto?.nombre ) }}
                     </div>
                   </td>
+<!--                  <td class="pm-none">-->
+<!--                    <input v-model="producto.cantidad" type="number" style="width: 50px;" @keyup="updatePrecioVenta(producto)" @update="updatePrecioVenta(producto)" />-->
+<!--                  </td>-->
+<!--                  <td class="pm-none">-->
+<!--                    <input v-model="producto.precio" type="number" style="width: 55px;" step="0.001" @keyup="updatePrecioVenta(producto)" @update="updatePrecioVenta(producto)" />-->
+<!--                  </td>-->
+<!--                  <td class="text-right pm-none">-->
+<!--                    <input v-model="producto.total" type="number" style="width: 55px;" step="0.001" @keyup="updatePrecioVenta(producto)" @update="updatePrecioVenta(producto)" />-->
+<!--                  </td>-->
+<!--                  <td class="pm-none">-->
+<!--                    <input v-model="producto.factor" type="number" style="width: 55px;" step="0.001" @keyup="updatePrecioVenta(producto)" @update="updatePrecioVenta(producto)" />-->
+<!--                  </td>-->
                   <td class="pm-none">
-                    <input v-model="producto.cantidad" type="number" style="width: 50px;" @keyup="updatePrecioVenta(producto)" @update="updatePrecioVenta(producto)" />
+                    <input
+                      v-model.number="producto.cantidad"
+                      type="number"
+                      min="0"
+                      style="width: 60px;"
+                      @input="onCantidadChange(producto)"
+                    />
                   </td>
+
                   <td class="pm-none">
-                    <input v-model="producto.precio" type="number" style="width: 55px;" step="0.001" @keyup="updatePrecioVenta(producto)" @update="updatePrecioVenta(producto)" />
+                    <input
+                      v-model.number="producto.precio"
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      style="width: 70px;"
+                      @input="onPrecioChange(producto)"
+                    />
                   </td>
+
                   <td class="text-right pm-none">
-                    {{ parseFloat(producto.cantidad * producto.precio).toFixed(2) }}
+                    <input
+                      v-model.number="producto.total"
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      style="width: 70px;"
+                      @input="onTotalChange(producto)"
+                    />
                   </td>
+
                   <td class="pm-none">
-                    <input v-model="producto.factor" type="number" style="width: 55px;" step="0.001" @keyup="updatePrecioVenta(producto)" @update="updatePrecioVenta(producto)" />
+                    <input
+                      v-model.number="producto.factor"
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      style="width: 60px;"
+                      @input="onFactorChange(producto)"
+                    />
                   </td>
                   <td class="text-right pm-none text-bold">
                     {{ parseFloat(producto.precio * producto.factor).toFixed(2) }}
@@ -177,18 +219,35 @@
           <q-form @submit="submitCompra">
             <div class="row">
               <div class="col-12 col-md-6 q-pa-xs">
-                <q-select v-model="proveedor" :options="proveedores" option-label="nombre" option-value="id" label="Proveedor" dense outlined @update:modelValue="buscarProveedor"
-                          :rules="[
-                            val => !!val || 'Campo requerido',
-                            val => {
-                              if (val) {
-                                this.compra.nit = val.nit;
-                                this.compra.nombre = val.nombre;
-                              }
-                              return true;
-                            }
-                          ]"
-                ></q-select>
+                <q-select
+                  v-model="proveedor"
+                  :options="proveedores"
+                  option-label="nombre"
+                  option-value="id"
+                  label="Proveedor"
+                  dense
+                  outlined
+                  :rules="[val => !!val || 'Campo requerido']"
+                  @update:model-value="val => {
+    if (val) {
+      this.compra.nombre = val.nombre || ''
+      this.compra.ci     = val.ci || ''
+    } else {
+      this.compra.nombre = ''
+      this.compra.ci     = ''
+    }
+  }"
+                >
+                  <template #append>
+                    <q-btn
+                      round dense flat
+                      icon="person_add"
+                      @click.stop="openProveedorDialog"
+                      title="Nuevo proveedor"
+                    />
+                  </template>
+                </q-select>
+
               </div>
               <div class="col-12 col-md-6 q-pa-xs">
                 <q-select v-model="compra.tipo_pago" :options="['Efectivo', 'QR']" label="Tipo de pago" dense outlined />
@@ -196,12 +255,12 @@
               <div class="col-12 col-md-6 q-pa-xs">
                 <q-input v-model="compra.nro_factura" outlined dense label="Nro. factura" />
               </div>
-              <div class="col-12 col-md-6 q-pa-xs">
-<!--                agencias-->
-                <q-select v-model="compra.agencia" :options="$agencias" label="Agencia" dense outlined :rules="[
-                  val => !!val || 'Campo requerido',
-                ]" />
-              </div>
+<!--              <div class="col-12 col-md-6 q-pa-xs">-->
+<!--&lt;!&ndash;                agencias&ndash;&gt;-->
+<!--                <q-select v-model="compra.agencia" :options="$agencias" label="Agencia" dense outlined :rules="[-->
+<!--                  val => !!val || 'Campo requerido',-->
+<!--                ]" />-->
+<!--              </div>-->
               <div class="col-12">
 <!--                table-->
                 <q-markup-table flat dense wrap-cells bordered>
@@ -261,7 +320,60 @@
         </q-card-section>
       </q-card>
     </q-dialog>
-<!--    myElement-->
+    <!-- Diálogo: Nuevo proveedor -->
+    <q-dialog v-model="proveedorDialog" persistent>
+      <q-card style="width: 520px; max-width: 90vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Nuevo proveedor</div>
+          <q-space />
+          <q-btn flat round dense icon="close" @click="closeProveedorDialog" />
+        </q-card-section>
+
+        <q-card-section>
+          <q-form ref="formProveedorRef" @submit="saveProveedor">
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="proveedorForm.nombre"
+                  label="Nombre *"
+                  dense outlined
+                  :rules="[v => !!v || 'El nombre es obligatorio']"
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-input v-model="proveedorForm.ci" label="CI" dense outlined />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-input v-model="proveedorForm.telefono" label="Teléfono" dense outlined />
+              </div>
+
+              <div class="col-12">
+                <q-input v-model="proveedorForm.email" label="Email" type="email" dense outlined />
+              </div>
+
+              <div class="col-12">
+                <q-input
+                  v-model="proveedorForm.direccion"
+                  label="Dirección"
+                  type="textarea"
+                  autogrow
+                  dense outlined
+                />
+              </div>
+            </div>
+
+            <div class="row q-gutter-sm q-mt-md">
+              <q-space />
+              <q-btn flat label="Cancelar" color="grey-8" @click="closeProveedorDialog" />
+              <q-btn color="primary" label="Guardar" icon="save" type="submit" :loading="loading" />
+            </div>
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <!--    myElement-->
     <div id="myElement" class="hidden"></div>
   </q-page>
 </template>
@@ -272,6 +384,15 @@ export default {
   name: "ComprasCreate",
   data() {
     return {
+      proveedorDialog: false,
+      formProveedorRef: null,
+      proveedorForm: {
+        nombre: '',
+        ci: '',
+        telefono: '',
+        email: '',
+        direccion: ''
+      },
       loading: false,
       compraDialog: false,
       productos: [],
@@ -305,6 +426,95 @@ export default {
     },
   },
   methods: {
+    openProveedorDialog() {
+      this.resetProveedorForm()
+      this.proveedorDialog = true
+    },
+
+    closeProveedorDialog() {
+      this.proveedorDialog = false
+    },
+
+    resetProveedorForm() {
+      this.proveedorForm = {
+        nombre: '',
+        ci: '',
+        telefono: '',
+        email: '',
+        direccion: ''
+      }
+    },
+
+    async saveProveedor() {
+      const ok = await this.$refs.formProveedorRef.validate()
+      if (!ok) return
+
+      this.loading = true
+      this.$axios.post('proveedores', this.proveedorForm)
+        .then(res => {
+          const creado = res.data  // {id, nombre, ci, telefono, email, direccion, ...}
+
+          // 1) Agregar a la lista local
+          this.proveedores.unshift(creado)
+
+          // 2) Seleccionarlo y propagar a 'compra'
+          this.proveedor      = creado
+          this.compra.nombre  = creado.nombre || ''
+          this.compra.ci      = creado.ci || ''
+
+          // 3) Feedback y cerrar
+          this.$alert?.success?.('Proveedor creado correctamente')
+          || this.$q.notify({ type: 'positive', message: 'Proveedor creado correctamente' })
+
+          this.proveedorDialog = false
+          this.resetProveedorForm()
+        })
+        .catch(err => {
+          console.error('Error creando proveedor:', err)
+          this.$alert?.error?.('No se pudo crear el proveedor')
+          || this.$q.notify({ type: 'negative', message: 'No se pudo crear el proveedor' })
+        })
+        .finally(() => {
+          this.loading = false
+        })
+    },
+    onCantidadChange(row) {
+      const qty = Number(row.cantidad) || 0
+      const unit = Number(row.precio) || 0
+      // si hay precio, recalcular total; si no, dejar total tal cual
+      row.total = this.round2(qty * unit)
+      this.updatePrecioVenta(row)
+    },
+
+    onPrecioChange(row) {
+      const qty = Number(row.cantidad) || 0
+      const unit = Number(row.precio) || 0
+      row.total = this.round2(qty * unit)
+      this.updatePrecioVenta(row)
+    },
+
+    onTotalChange(row) {
+      const qty = Number(row.cantidad) || 0
+      const tot = Number(row.total) || 0
+      // si cantidad > 0, calcular precio desde total; si no, precio = 0
+      row.precio = qty > 0 ? this.round3(tot / qty) : 0
+      this.updatePrecioVenta(row)
+    },
+
+    onFactorChange(row) {
+      this.updatePrecioVenta(row)
+    },
+
+    updatePrecioVenta(row) {
+      const unit = Number(row.precio) || 0
+      const factor = Number(row.factor) || 0
+      // tu lógica original con ceil, o usa redondeo a 2 decimales
+      // row.precio_venta = Math.ceil(unit * factor)
+      row.precio_venta = this.round2(unit * factor)
+    },
+
+    round2(v) { return Math.round((Number(v) || 0) * 100) / 100 },
+    round3(v) { return Math.round((Number(v) || 0) * 1000) / 1000 },
     recuperarPedido() {
       // COlcoar el id del pedido
       this.$q.dialog({
@@ -380,10 +590,10 @@ export default {
       });
     },
     addProducto(producto) {
-      const existente = this.productosCompras.find(p => p.producto_id === producto.id);
-      if (existente) {
-        existente.cantidad += 1;
-      } else {
+      // const existente = this.productosCompras.find(p => p.producto_id === producto.id);
+      // if (existente) {
+      //   existente.cantidad += 1;
+      // } else {
         this.productosCompras.push({
           producto_id: producto.id,
           cantidad: 1,
@@ -393,7 +603,7 @@ export default {
           producto,
           factor: 1.25,
         });
-      }
+      // }
     },
     clickDialogCompra() {
       if (this.productosCompras.length === 0) {
