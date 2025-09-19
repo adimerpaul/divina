@@ -212,6 +212,8 @@ class VentaController extends Controller{
             // 4) Total final
             $venta->update(['total' => $total]);
 
+            //5) mandar a impuestos
+
             return response()->json(
                 $venta->load('ventaDetalles.producto')
             );
