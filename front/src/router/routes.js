@@ -10,11 +10,11 @@ const routes = [
       { path: 'ventaNuevo', name: 'ventaNuevo', component: () => import('pages/ventas/VentaNew.vue'), meta: { requiresAuth: true } },
       { path: 'proveedores', name: 'proveedores', component: () => import('pages/proveedores/Proveedores.vue'), meta: { requiresAuth: true } },
       { path: 'compras', name: 'compras', component: () => import('pages/compras/Compras.vue'), meta: { requiresAuth: true } },
+      // impuestos
+      { path: 'impuestos', name: 'impuestos', component: () => import('pages/impuestos/Impuestos.vue'), meta: { requiresAuth: true } },
       { path: 'compras-create', name: 'compras-create', component: () => import('pages/compras/ComprasCreate.vue'), meta: { requiresAuth: true } },
       { path: 'productos-vencer', name: 'productos-vencer', component: () => import('pages/productos/ProductosVencer.vue'), meta: { requiresAuth: true } },
       { path: 'productos-vencidos', name: 'productos-vencidos', component: () => import('pages/productos/ProductosVencidos.vue'), meta: { requiresAuth: true } },
-      // { title: 'Pedidos', icon: 'real_estate_agent', link: '/pedidos', can: ['Todos']},
-      // { title: 'Pedidos Compra', icon: 'shopping_cart_checkout', link: '/pedidosCompra', can: ['Todos']},
       { path: 'pedidos', name: 'pedidos', component: () => import('pages/pedidos/Pedidos.vue'), meta: { requiresAuth: true } },
       { path: 'pedidosCompra', name: 'pedidosCompra', component: () => import('pages/pedidos/PedidosCompra.vue'), meta: { requiresAuth: true } },
     ]

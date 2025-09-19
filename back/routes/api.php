@@ -56,4 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/recuperarPedido', [App\Http\Controllers\PedidoController::class, 'recuperarPedido']);
 
+
+//    impuestos/generar-cui
+    Route::post('/impuestos/generar-cui', [App\Http\Controllers\ImpuestoController::class, 'generarCUI']);
+
 });
+
+//Route test
+Route::get('/test', [App\Http\Controllers\TestController::class, 'index']);

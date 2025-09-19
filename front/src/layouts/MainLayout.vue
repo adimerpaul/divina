@@ -118,6 +118,7 @@ onMounted(() => {
   const baseLinks = [
     { title: 'Principal', icon: 'home', link: '/', can: 'Todos' },
     { title: 'Usuarios', icon: 'people', link: '/usuarios', can: 'Admin' },
+    { title: 'Impuestos', icon: 'percent', link: '/impuestos', can: 'Admin' },
     { title: 'Productos', icon: 'shopping_cart', link: '/productos', can: 'Todos' },
     { title: 'Ventas', icon: 'shopping_bag', link: '/venta', can: 'Todos' },
     { title: 'Nueva Venta', icon: 'add_shopping_cart', link: '/ventaNuevo', can: 'Todos' },
