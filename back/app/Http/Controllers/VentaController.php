@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\CompraDetalle;
+use App\Models\Cufd;
+use App\Models\Cui;
 use App\Models\Producto;
 use App\Models\Venta;
 use App\Models\VentaDetalle;
@@ -101,7 +103,27 @@ class VentaController extends Controller{
         $user    = $request->user();
         $cliente = $this->clienteUpdateOrCreate($request);
 
-        return DB::transaction(function () use ($data, $user, $cliente) {
+        $codigoPuntoVenta   = 0;
+        $codigoSucursal     = 0;
+
+        $cui = Cui::where('codigoPuntoVenta', $codigoPuntoVenta)
+            ->where('codigoSucursal', $codigoSucursal)
+            ->where('fechaVigencia', '>=', now())
+            ->first();
+
+        if (!$cui) {
+            return response()->json(['message' => 'No existe CUI para la venta!!'], 400);
+        }
+
+        $cufd = Cufd::where('codigoPuntoVenta', $codigoPuntoVenta)
+            ->where('codigoSucursal', $codigoSucursal)
+            ->where('fechaVigencia', '>=', now())
+            ->first();
+        if (!$cufd) {
+            return response()->json(['message' => 'No existe CUFD para la venta!!'], 400);
+        }
+
+        return DB::transaction(function () use ($data, $user, $cliente, $cufd) {
 
             // 1) Venta
             $venta = Venta::create([
@@ -212,7 +234,109 @@ class VentaController extends Controller{
             // 4) Total final
             $venta->update(['total' => $total]);
 
+            /*
             //5) mandar a impuestos
+            $leyendas = [
+                "Ley N° 453: Puedes acceder a la reclamación cuando tus derechos han sido vulnerados.",
+                "Ley N° 453: Puedes acceder a la reclamación cuando tus derechos han sido vulnerados.",
+                "Ley N° 453: El proveedor debe brindar atención sin discriminación, con respeto, calidez y cordialidad a los usuarios y consumidores.",
+                "Ley N° 453: El proveedor debe brindar atención sin discriminación, con respeto, calidez y cordialidad a los usuarios y consumidores.",
+                "Ley N° 453: Está prohibido importar, distribuir o comercializar productos expirados o prontos a expirar.",
+                "Ley N° 453: Los alimentos declarados de primera necesidad deben ser suministrados de manera adecuada, oportuna, continua y a precio justo.",
+                "Ley N° 453: Tienes derecho a recibir información sobre las características y contenidos de los productos que consumes.",
+                "Ley N° 453: Tienes derecho a un trato equitativo sin discriminación en la oferta de productos.",
+                "Ley N° 453: Está prohibido importar, distribuir o comercializar productos prohibidos o retirados en el país de origen por atentar a la integridad física y a la salud.",
+                "Ley N° 453: El proveedor deberá entregar el producto en las modalidades y términos ofertados o convenidos.",
+                "Ley N° 453: En caso de incumplimiento a lo ofertado o convenido, el proveedor debe reparar o sustituir el producto..",
+                "Ley N° 453: Los servicios deben suministrarse en condiciones de inocuidad, calidad y seguridad."
+            ];
+            $leyendaRandom = $leyendas[array_rand($leyendas)];
+
+            $detalles = $venta->ventaDetalles;
+
+            $detalleFactura = '';
+            foreach ($detalles as $detalle) {
+                $detalleFactura .= "<detalle>
+                <actividadEconomica>477300</actividadEconomica>
+                <codigoProductoSin>99100</codigoProductoSin>
+                <codigoProducto>" . $detalle->producto_id . "</codigoProducto>
+                <descripcion>" . utf8_encode(str_replace("&", "&amp;", $detalle->nombre)) . "</descripcion>
+                <cantidad>" . $detalle->cantidad . "</cantidad>
+                <unidadMedida>62</unidadMedida>
+                <precioUnitario>" . $detalle->precio . "</precioUnitario>
+                <montoDescuento>0</montoDescuento>
+                <subTotal>" . $detalle->precio * $detalle->cantidad . "</subTotal>
+                <numeroSerie xsi:nil='true'/>
+                <numeroImei xsi:nil='true'/>
+            </detalle>";
+            }
+            $token = env('TOKEN');
+            $nit = env('NIT');
+            $ambiente = env('AMBIENTE');
+            $codigoSucursal = 0;
+            $codigoModalidad = env('MODALIDAD');
+            $codigoEmision = 1;
+            $tipoFacturaDocumento = 1; // 1 con credito fiscal 2 sin credito fiscal 3 nota credito debito
+            $codigoDocumentoSector = 1; //1 compra venta, 13 servicios basicos, 24 nota credito debito, 29 nota conciliacion
+            $numeroFactura = 1; // numero de factura
+            $codigoPuntoVenta = 0;
+            $codigoSistema = env('CODIGO_SISTEMA');
+
+            $fechaEnvio = date("Y-m-d\TH:i:s.000");
+            $cuf = new CUF();
+            $cuf = $cuf->obtenerCUF(
+                $nit,
+                date("YmdHis000"),
+                $codigoSucursal,
+                $codigoModalidad,
+                $codigoEmision,
+                $tipoFacturaDocumento,
+                $codigoDocumentoSector,
+                $numeroFactura,
+                $codigoPuntoVenta
+            );
+            $cuf = $cuf . $cufd->codigoControl;
+
+            $text = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+        <facturaElectronicaCompraVenta xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='facturaElectronicaCompraVenta.xsd'>
+        <cabecera>
+        <nitEmisor>" . env('NIT') . "</nitEmisor>
+        <razonSocialEmisor>" . env('RAZON') . "</razonSocialEmisor>
+        <municipio>Oruro</municipio>
+        <telefono>" . env('TELEFONO') . "</telefono>
+        <numeroFactura>$numeroFactura</numeroFactura>
+        <cuf>$cuf</cuf>
+        <cufd>" . $cufd->codigo . "</cufd>
+        <codigoSucursal>$codigoSucursal</codigoSucursal>
+        <direccion>" . env('DIRECCION') . "</direccion>
+        <codigoPuntoVenta>$codigoPuntoVenta</codigoPuntoVenta>
+        <fechaEmision>$fechaEnvio</fechaEmision>
+        <nombreRazonSocial>" . utf8_encode(str_replace("&", "&amp;", $cliente->nombre)) . "</nombreRazonSocial>
+        <codigoTipoDocumentoIdentidad>" . $client->codigoTipoDocumentoIdentidad . "</codigoTipoDocumentoIdentidad>
+        <numeroDocumento>" . $client->numeroDocumento . "</numeroDocumento>
+        <complemento>" . $client->complemento . "</complemento>
+        <codigoCliente>" . $client->id . "</codigoCliente>
+        <codigoMetodoPago>1</codigoMetodoPago>
+        <numeroTarjeta xsi:nil='true'/>
+        <montoTotal>" . $venta->total . "</montoTotal>
+        <montoTotalSujetoIva>" . $venta->total . "</montoTotalSujetoIva>
+        <codigoMoneda>1</codigoMoneda>
+        <tipoCambio>1</tipoCambio>
+        <montoTotalMoneda>" . $venta->total . "</montoTotalMoneda>
+        <montoGiftCard xsi:nil='true'/>
+        <descuentoAdicional>0</descuentoAdicional>
+        <codigoExcepcion>" . ($client->codigoTipoDocumentoIdentidad == 5 ? 1 : 0) . "</codigoExcepcion>
+        <cafc xsi:nil='true'/>
+        <leyenda>$leyendaRandom</leyenda>
+        <usuario>" . explode(" ", $user->name)[0] . "</usuario>
+        <codigoDocumentoSector>" . $codigoDocumentoSector . "</codigoDocumentoSector>
+        </cabecera>";
+            $text .= $detalleFactura;
+            $text .= "</facturaElectronicaCompraVenta>";
+
+            $xml = new SimpleXMLElement($text);
+            $dom = new DOMDocument('1.0');
+            */
 
             return response()->json(
                 $venta->load('ventaDetalles.producto')

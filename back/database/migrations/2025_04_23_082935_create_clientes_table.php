@@ -17,6 +17,9 @@ return new class extends Migration
             $table->string('ci')->nullable();
             $table->string('telefono')->nullable();
             $table->string('direccion')->nullable();
+            $table->string('complemento')->nullable();
+            $table->string('codigoTipoDocumentoIdentidad')->nullable();
+            $table->string('email')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
