@@ -93,7 +93,7 @@
           <th>Estado</th>
           <th>Total</th>
           <th>Detalle</th>
-          <th>Agencia</th>
+          <th>Linea</th>
         </tr>
       </thead>
       <tbody>
@@ -155,8 +155,7 @@
             </div>
           </td>
           <td>
-<!--              {{ venta.agencia }}-->
-            <q-chip size="10px" :color="venta.cuf ? 'green' : 'red'" class="text-white" dense>{{ venta.cuf ? 'F' : 'R' }}</q-chip>
+            <q-chip size="10px" :color="venta.online ? 'green' : 'red'" class="text-white" dense>{{ venta.online ? 'S' : 'N' }}</q-chip>
           </td>
         </tr>
       </template>
@@ -170,222 +169,6 @@
       </template>
       </tbody>
     </q-markup-table>
-<!--    <pre>{{ ventas }}</pre>-->
-<!--    [-->
-<!--    {-->
-<!--    "id": 22,-->
-<!--    "user_id": 1,-->
-<!--    "cliente_id": 1,-->
-<!--    "fecha": "2025-01-15",-->
-<!--    "ci": "0",-->
-<!--    "nombre": "SN",-->
-<!--    "estado": "Activo",-->
-<!--    "tipo_comprobante": "Venta",-->
-<!--    "total": "58.00",-->
-<!--    "detailsText": "1 A -  MINA 10000  U.I. CAPSULAS,1 4 DERM X 20 GR,1 A VIMIN 10 000 U.I. X TABLETA",-->
-<!--    "user": {-->
-<!--    "id": 1,-->
-<!--    "name": "Adminstrador",-->
-<!--    "username": "admin",-->
-<!--    "email": "admin@test.com",-->
-<!--    "role": "Doctor",-->
-<!--    "color": "orange"-->
-<!--    },-->
-<!--    "cliente": {-->
-<!--    "id": 1,-->
-<!--    "nombre": "SN",-->
-<!--    "ci": "0",-->
-<!--    "telefono": null,-->
-<!--    "direccion": null-->
-<!--    },-->
-<!--    "venta_detalles": [-->
-<!--    {-->
-<!--    "id": 38,-->
-<!--    "venta_id": 22,-->
-<!--    "producto_id": 3299,-->
-<!--    "cantidad": 1,-->
-<!--    "unidad": null,-->
-<!--    "precio": 1,-->
-<!--    "producto": {-->
-<!--    "id": 3299,-->
-<!--    "nombre": "A -  MINA 10000  U.I. CAPSULAS",-->
-<!--    "descripcion": "Tratamiento de la deficiencia de vitamina A",-->
-<!--    "unidad": "CAPSULAS  BLANDA",-->
-<!--    "precio": 1,-->
-<!--    "stock": null,-->
-<!--    "stock_minimo": null,-->
-<!--    "stock_maximo": null-->
-<!--    }-->
-<!--    },-->
-<!--    {-->
-<!--    "id": 39,-->
-<!--    "venta_id": 22,-->
-<!--    "producto_id": 4454,-->
-<!--    "cantidad": 1,-->
-<!--    "unidad": null,-->
-<!--    "precio": 56,-->
-<!--    "producto": {-->
-<!--    "id": 4454,-->
-<!--    "nombre": "4 DERM X 20 GR",-->
-<!--    "descripcion": "Antimicótico y antiinflamatorio",-->
-<!--    "unidad": "TUBOS",-->
-<!--    "precio": 56,-->
-<!--    "stock": null,-->
-<!--    "stock_minimo": null,-->
-<!--    "stock_maximo": null-->
-<!--    }-->
-<!--    },-->
-<!--    {-->
-<!--    "id": 40,-->
-<!--    "venta_id": 22,-->
-<!--    "producto_id": 2099,-->
-<!--    "cantidad": 1,-->
-<!--    "unidad": null,-->
-<!--    "precio": 1,-->
-<!--    "producto": {-->
-<!--    "id": 2099,-->
-<!--    "nombre": "A VIMIN 10 000 U.I. X TABLETA",-->
-<!--    "descripcion": "Avitaminosis A",-->
-<!--    "unidad": "TABLETAS RECUBIERTAS",-->
-<!--    "precio": 1,-->
-<!--    "stock": null,-->
-<!--    "stock_minimo": null,-->
-<!--    "stock_maximo": null-->
-<!--    }-->
-<!--    }-->
-<!--    ]-->
-<!--    },-->
-<!--    {-->
-<!--    "id": 23,-->
-<!--    "user_id": 1,-->
-<!--    "cliente_id": 1,-->
-<!--    "fecha": "2025-01-15",-->
-<!--    "ci": "0",-->
-<!--    "nombre": "SN",-->
-<!--    "estado": "Activo",-->
-<!--    "tipo_comprobante": "Venta",-->
-<!--    "total": "76.00",-->
-<!--    "detailsText": "1 ABRILAR EA 575 MENTOLADO JARABE X 100 ML,1 ABZ  200  MG/5 ML SUSPENSION",-->
-<!--    "user": {-->
-<!--    "id": 1,-->
-<!--    "name": "Adminstrador",-->
-<!--    "username": "admin",-->
-<!--    "email": "admin@test.com",-->
-<!--    "role": "Doctor",-->
-<!--    "color": "orange"-->
-<!--    },-->
-<!--    "cliente": {-->
-<!--    "id": 1,-->
-<!--    "nombre": "SN",-->
-<!--    "ci": "0",-->
-<!--    "telefono": null,-->
-<!--    "direccion": null-->
-<!--    },-->
-<!--    "venta_detalles": [-->
-<!--    {-->
-<!--    "id": 41,-->
-<!--    "venta_id": 23,-->
-<!--    "producto_id": 2625,-->
-<!--    "cantidad": 1,-->
-<!--    "unidad": null,-->
-<!--    "precio": 75,-->
-<!--    "producto": {-->
-<!--    "id": 2625,-->
-<!--    "nombre": "ABRILAR EA 575 MENTOLADO JARABE X 100 ML",-->
-<!--    "descripcion": "Espectorante Natural Broncodilatador y Antitusivo",-->
-<!--    "unidad": "FRASCO",-->
-<!--    "precio": 75,-->
-<!--    "stock": null,-->
-<!--    "stock_minimo": null,-->
-<!--    "stock_maximo": null-->
-<!--    }-->
-<!--    },-->
-<!--    {-->
-<!--    "id": 42,-->
-<!--    "venta_id": 23,-->
-<!--    "producto_id": 3149,-->
-<!--    "cantidad": 1,-->
-<!--    "unidad": null,-->
-<!--    "precio": 1,-->
-<!--    "producto": {-->
-<!--    "id": 3149,-->
-<!--    "nombre": "ABZ  200  MG/5 ML SUSPENSION",-->
-<!--    "descripcion": "Antiparasitario",-->
-<!--    "unidad": "FRASCOS SUSPENSION",-->
-<!--    "precio": 1,-->
-<!--    "stock": null,-->
-<!--    "stock_minimo": null,-->
-<!--    "stock_maximo": null-->
-<!--    }-->
-<!--    }-->
-<!--    ]-->
-<!--    },-->
-<!--    {-->
-<!--    "id": 24,-->
-<!--    "user_id": 1,-->
-<!--    "cliente_id": 1,-->
-<!--    "fecha": "2025-01-15",-->
-<!--    "ci": "0",-->
-<!--    "nombre": "SN",-->
-<!--    "estado": "Activo",-->
-<!--    "tipo_comprobante": "Venta",-->
-<!--    "total": "61.00",-->
-<!--    "detailsText": "1 A -  MINA 10000  U.I. CAPSULAS,1 4 DERM X 20 GR",-->
-<!--    "user": {-->
-<!--    "id": 1,-->
-<!--    "name": "Adminstrador",-->
-<!--    "username": "admin",-->
-<!--    "email": "admin@test.com",-->
-<!--    "role": "Doctor",-->
-<!--    "color": "orange"-->
-<!--    },-->
-<!--    "cliente": {-->
-<!--    "id": 1,-->
-<!--    "nombre": "SN",-->
-<!--    "ci": "0",-->
-<!--    "telefono": null,-->
-<!--    "direccion": null-->
-<!--    },-->
-<!--    "venta_detalles": [-->
-<!--    {-->
-<!--    "id": 43,-->
-<!--    "venta_id": 24,-->
-<!--    "producto_id": 3299,-->
-<!--    "cantidad": 1,-->
-<!--    "unidad": null,-->
-<!--    "precio": 4,-->
-<!--    "producto": {-->
-<!--    "id": 3299,-->
-<!--    "nombre": "A -  MINA 10000  U.I. CAPSULAS",-->
-<!--    "descripcion": "Tratamiento de la deficiencia de vitamina A",-->
-<!--    "unidad": "CAPSULAS  BLANDA",-->
-<!--    "precio": 1,-->
-<!--    "stock": null,-->
-<!--    "stock_minimo": null,-->
-<!--    "stock_maximo": null-->
-<!--    }-->
-<!--    },-->
-<!--    {-->
-<!--    "id": 44,-->
-<!--    "venta_id": 24,-->
-<!--    "producto_id": 4454,-->
-<!--    "cantidad": 1,-->
-<!--    "unidad": null,-->
-<!--    "precio": 57,-->
-<!--    "producto": {-->
-<!--    "id": 4454,-->
-<!--    "nombre": "4 DERM X 20 GR",-->
-<!--    "descripcion": "Antimicótico y antiinflamatorio",-->
-<!--    "unidad": "TUBOS",-->
-<!--    "precio": 56,-->
-<!--    "stock": null,-->
-<!--    "stock_minimo": null,-->
-<!--    "stock_maximo": null-->
-<!--    }-->
-<!--    }-->
-<!--    ]-->
-<!--    }-->
-<!--    ]-->
   </q-page>
   <div id="myElement" class="hidden"></div>
 </template>
@@ -463,7 +246,7 @@ export default {
       })
     },
     imprimir(venta) {
-      Imprimir.factura(venta)
+      Imprimir.printFactura(venta)
     },
     tipoVentasChange(id) {
       this.$axios.put(`tipoVentasChange/${id}`).then(res => {

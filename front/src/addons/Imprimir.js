@@ -757,4 +757,82 @@ Oruro</div>
 <body>
 <div style="width: 300px;">`
   }
+  static async printFactura(factura) {
+    const ClaseConversor = conversor.conversorNumerosALetras;
+    const miConversor = new ClaseConversor();
+    const literal = miConversor.convertToText(parseInt(factura.total));
+    const env = useCounterStore().env;
+    const qr = await QRCode.toDataURL(`${env.url2}consulta/QR?nit=${env.nit}&cuf=${factura.cuf}&numero=${factura.id}&t=2`, {
+      errorCorrectionLevel: 'M',
+      type: 'png',
+      quality: 0.95,
+      width: 100,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#FFF'
+      }
+    });
+    const online = factura.online ? 'en' : 'fuera de';
+
+    let html = `<style>
+    .titulo { font-size: 12px; text-align: center; font-weight: bold; }
+    .titulo2 { font-size: 10px; text-align: center; }
+    .contenido { font-size: 10px; text-align: left; }
+    .conte2 { font-size: 10px; text-align: right; }
+    .titder { font-size: 12px; text-align: right; font-weight: bold; }
+    hr { border-top: 1px dashed; }
+  </style>
+  <div style='padding: 0.5cm'>
+    <div class='titulo'>FACTURA CON DERECHO A CREDITO FISCAL</div>
+    <div class='titulo2'>
+      ${env.razon}<br>Casa Matriz<br>No. Punto de Venta 0<br>
+      ${env.direccion}<br>Tel. ${env.telefono}<br>Oruro
+    </div>
+    <hr>
+    <div class='titulo'>NIT</div><div class='titulo2'>${env.nit}</div>
+    <div class='titulo'>FACTURA N°</div><div class='titulo2'>${factura.id}</div>
+    <div class='titulo'>CÓD. AUTORIZACIÓN</div><div class='titulo2'>${factura.cuf}</div>
+    <hr>
+    <table>
+      <tr><td class='titder'>NOMBRE/RAZÓN SOCIAL:</td><td class='contenido'>${factura.nombre}</td></tr>
+      <tr><td class='titder'>NIT/CI/CEX:</td><td class='contenido'>${factura.ci}${factura.cliente.complemento? '-' + factura.cliente.complemento : ''}</td></tr>
+      <tr><td class='titder'>COD. CLIENTE:</td><td class='contenido'>${factura.cliente.id}</td></tr>
+      <tr><td class='titder'>FECHA DE EMISIÓN:</td><td class='contenido'>${factura.fecha}</td></tr>
+    </table>
+    <hr>
+    <div class='titulo'>DETALLE</div>`;
+
+    factura.venta_detalles.forEach(r => {
+      html += `<div style='font-size: 12px'><b>${r.id} - ${r.nombre}</b></div>
+             <div>${r.cantidad} ${parseFloat(r.precio).toFixed(2)} 0.00
+             <span style='float:right'>${parseFloat(r.cantidad*r.precio).toFixed(2)}</span></div>`;
+    });
+
+    html += `<hr>
+    <table style='font-size: 8px;'>
+      <tr><td class='titder'>SUBTOTAL Bs</td><td class='conte2'>${parseFloat(factura.total).toFixed(2)}</td></tr>
+      <tr><td class='titder'>DESCUENTO Bs</td><td class='conte2'>0.00</td></tr>
+      <tr><td class='titder'>TOTAL Bs</td><td class='conte2'>${parseFloat(factura.total).toFixed(2)}</td></tr>
+      <tr><td class='titder'>MONTO GIFT CARD Bs</td><td class='conte2'>0.00</td></tr>
+      <tr><td class='titder'>MONTO A PAGAR Bs</td><td class='conte2'>${parseFloat(factura.total).toFixed(2)}</td></tr>
+      <tr><td class='titder'>IMPORTE BASE CRÉDITO FISCAL Bs</td><td class='conte2'>${parseFloat(factura.total).toFixed(2)}</td></tr>
+    </table><br>
+    <div>Son ${literal} ${((parseFloat(factura.total) - Math.floor(factura.total)) * 100).toFixed(0)}/100 Bolivianos</div>
+    <hr>
+    <div class='titulo2' style='font-size: 9px'>ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS,<br>
+    EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY<br><br>
+    ${factura.leyenda}<br><br>
+    “Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación ${online} línea”</div>
+    <div style='display: flex; justify-content: center;'>
+      <img src="${qr}" />
+    </div>
+  </div>`;
+
+    // document.getElementById('myelement').innerHTML = html;
+    const el = document.getElementById('myElement');
+    if (el) el.innerHTML = html;
+    const d = new Printd();
+    d.print(el);
+  }
 }
