@@ -153,10 +153,27 @@ function toggleLeftDrawer () {
 function logout() {
   proxy.$alert.dialog('¿Desea salir del sistema?')
     .onOk(() => {
-      proxy.$store.isLogged = false
-      proxy.$store.user = {}
-      localStorage.removeItem('tokenProvidencia')
-      proxy.$router.push('/login')
+      // proxy.$store.isLogged = false
+      // proxy.$store.user = {}
+      // localStorage.removeItem('tokenProvidencia')
+      // proxy.$router.push('/login')
+      proxy.$axios.post('/logout')
+        .then(() => {
+          proxy.$store.isLogged = false
+          proxy.$store.user = {}
+          localStorage.removeItem('tokenProvidencia')
+          localStorage.removeItem('user')
+          proxy.$alert.success('Sesión cerrada', 'Éxito')
+          proxy.$router.push('/login')
+        })
+        .catch(() => {
+          proxy.$store.isLogged = false
+          proxy.$store.user = {}
+          localStorage.removeItem('tokenProvidencia')
+          localStorage.removeItem('user')
+          proxy.$alert.success('Sesión cerrada', 'Éxito')
+          proxy.$router.push('/login')
+        })
     })
 }
 </script>

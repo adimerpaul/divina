@@ -546,7 +546,7 @@ export default {
           tipo_venta: "Interno",
           tipo_pago: "Efectivo",
         };
-        Imprimir.nota(res.data);
+        Imprimir.factura(res.data);
         this.receta_id = null;
         this.$nextTick(() => this.$refs.inputBuscarProducto?.focus());
         this.productosGet();

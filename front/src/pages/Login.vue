@@ -93,6 +93,7 @@ function login() {
       proxy.$axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       proxy.$store.isLogged = true
       proxy.$store.user = user
+      proxy.$store.env = res.data.datos
       localStorage.setItem('tokenProvidencia', token)
       localStorage.setItem('user', JSON.stringify(user))
       proxy.$alert.success('Bienvenido ', user.name)

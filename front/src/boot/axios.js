@@ -51,7 +51,8 @@ export default boot(({ app, router }) => {
     app.config.globalProperties.$axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     app.config.globalProperties.$axios.get('me').then(response => {
       useCounterStore().isLogged = true
-      useCounterStore().user = response.data
+      useCounterStore().user = response.data.user
+      useCounterStore().env = response.data.datos
       useCounterStore().permissions = response.data.permissions
       localStorage.setItem('user', JSON.stringify(response.data))
     }).catch(error => {
