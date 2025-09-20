@@ -405,6 +405,7 @@ class VentaController extends Controller{
                 isset($result->RespuestaServicioFacturacion->transaccion) &&
                 $result->RespuestaServicioFacturacion->transaccion ) {
                 $venta->cuf = $cuf;
+                $venta->leyenda = $leyendaRandom;
                 $venta->save();
             }
 
