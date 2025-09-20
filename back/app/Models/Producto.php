@@ -39,6 +39,7 @@ class Producto extends Model{
         'updated_at',
         'deleted_at'
     ];
+    protected $appends = ['stock'];
 //    protected $appends = [
 //        'stock',
 //    ];
@@ -56,5 +57,16 @@ class Producto extends Model{
 //    }
     function comprasDetalles(){
         return $this->hasMany(CompraDetalle::class);
+    }
+    public function getStockAttribute($value)
+    {
+        if ($value !== null) {
+            return (float) $value;
+        }
+
+        return (float) $this->comprasDetalles()
+            ->where('estado', 'Activo')
+            ->whereNull('compra_detalles.deleted_at')
+            ->sum('cantidad_venta');
     }
 }

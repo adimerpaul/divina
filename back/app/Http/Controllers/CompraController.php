@@ -77,20 +77,21 @@ class CompraController extends Controller{
 
             foreach ($compra->compraDetalles as $detalle) {
 //                Producto::where('id', $detalle->producto_id)->decrement('stock', $detalle->cantidad);
-                switch ($compra->agencia) {
-                    case 'Almacen':
-                        Producto::where('id', $detalle->producto_id)->decrement('stockAlmacen', $detalle->cantidad);
-                        break;
-                    case 'Challgua':
-                        Producto::where('id', $detalle->producto_id)->decrement('stockChallgua', $detalle->cantidad);
-                        break;
-                    case 'Socavon':
-                        Producto::where('id', $detalle->producto_id)->decrement('stockSocavon', $detalle->cantidad);
-                        break;
-                    case 'Catalina':
-                        Producto::where('id', $detalle->producto_id)->decrement('stockCatalina', $detalle->cantidad);
-                        break;
-                }
+//                switch ($compra->agencia) {
+//                    case 'Almacen':
+//                        Producto::where('id', $detalle->producto_id)->decrement('stockAlmacen', $detalle->cantidad);
+//                        break;
+//                    case 'Challgua':
+//                        Producto::where('id', $detalle->producto_id)->decrement('stockChallgua', $detalle->cantidad);
+//                        break;
+//                    case 'Socavon':
+//                        Producto::where('id', $detalle->producto_id)->decrement('stockSocavon', $detalle->cantidad);
+//                        break;
+//                    case 'Catalina':
+//                        Producto::where('id', $detalle->producto_id)->decrement('stockCatalina', $detalle->cantidad);
+//                        break;
+//                }
+
                 $detalle->estado = 'Anulado';
                 $detalle->save();
             }

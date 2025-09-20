@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TestMail;
 use App\Models\Cliente;
 use App\Models\CompraDetalle;
 use App\Models\Cufd;
@@ -11,6 +12,8 @@ use App\Models\Venta;
 use App\Models\VentaDetalle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use SimpleXMLElement;
 use DOMDocument;
 class VentaController extends Controller{
@@ -75,10 +78,29 @@ class VentaController extends Controller{
                         abort(422, 'No fue posible restaurar completamente el stock por lotes (capacidad insuficiente).');
                     }
                 }
+                #5 anular en impuesto
+                $Impuestos = new ImpuestoController();
+                $Impuestos->anularImpuestos($venta->cuf);
             }
 
             $venta->estado = 'Anulada';
             $venta->save();
+
+            $client = Cliente::find($venta->cliente_id);
+            if ($client->email != '') {
+                $details = [
+                    "title" => "Factura",
+                    "body" => "Factura anulada",
+                    "online" => true,
+                    "anulado" => true,
+                    "cuf" => $venta->cuf,
+                    "numeroFactura" => $venta->id,
+                    "sale_id" => $venta->id,
+                    "carpeta" => "archivos",
+                ];
+                Mail::to($client->email)->send(new TestMail($details));
+            }
+
 
             return response()->json([
                 'message' => 'Venta anulada y stock restituido correctamente.',
@@ -237,6 +259,11 @@ class VentaController extends Controller{
 
             // 4) Total final
             $venta->update(['total' => $total]);
+            if ($venta->ci === '0' || $venta->ci === 0 || $venta->ci === null || $venta->ci === '') {
+                return response()->json(
+                    $venta->load('ventaDetalles.producto')
+                );
+            }
 
 
             //5) mandar a impuestos
@@ -282,7 +309,7 @@ class VentaController extends Controller{
             $codigoEmision = 1;
             $tipoFacturaDocumento = 1; // 1 con credito fiscal 2 sin credito fiscal 3 nota credito debito
             $codigoDocumentoSector = 1; //1 compra venta, 13 servicios basicos, 24 nota credito debito, 29 nota conciliacion
-            $numeroFactura = 1; // numero de factura
+            $numeroFactura = $venta->id;
             $codigoPuntoVenta = 0;
             $codigoSistema = env('CODIGO_SISTEMA');
 
@@ -300,7 +327,7 @@ class VentaController extends Controller{
                 $codigoPuntoVenta
             );
             $cuf = $cuf . $cufd->codigoControl;
-
+//            <nombreRazonSocial>".utf8_encode(str_replace("&","&amp;",$cliente->nombre))."</nombreRazonSocial>
             $text = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
         <facturaElectronicaCompraVenta xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='facturaElectronicaCompraVenta.xsd'>
         <cabecera>
@@ -315,7 +342,7 @@ class VentaController extends Controller{
         <direccion>" . env('DIRECCION') . "</direccion>
         <codigoPuntoVenta>$codigoPuntoVenta</codigoPuntoVenta>
         <fechaEmision>$fechaEnvio</fechaEmision>
-        <nombreRazonSocial>" . utf8_encode(str_replace("&", "&amp;", $cliente->nombre)) . "</nombreRazonSocial>
+        <nombreRazonSocial>".$$this->xmlSafe($cliente->nombre)."</nombreRazonSocial>
         <codigoTipoDocumentoIdentidad>" . $cliente->codigoTipoDocumentoIdentidad . "</codigoTipoDocumentoIdentidad>
         <numeroDocumento>" . $cliente->ci . "</numeroDocumento>
         <complemento>" . $cliente->complemento . "</complemento>
@@ -344,7 +371,7 @@ class VentaController extends Controller{
             $dom->preserveWhiteSpace = false;
             $dom->formatOutput = true;
             $dom->loadXML($xml->asXML());
-            $nameFile = 1;
+            $nameFile = $venta->id;
             $dom->save("archivos/" . $nameFile . '.xml');
 
             $firmar = new Firmar();
@@ -401,16 +428,47 @@ class VentaController extends Controller{
             ]);
             error_log('result: ' . json_encode($result));
 
+//            result: {"RespuestaServicioFacturacion":{"codigoDescripcion":"RECHAZADA","codigoEstado":902,"mensajesList":{"codigo":1011,"descripcion":"EL COMPLEMENTO SOLO PUEDE SER ENVIADO CUANDO EL TIPO DE DOCUMENTO ES CARNET DE IDENTIDAD O CEDULA DE IDENTIDAD DE EXTRANJERO Complemento A1 tipoDocumento 5"},"transaccion":false}}
+            if( isset($result->RespuestaServicioFacturacion) &&
+                isset($result->RespuestaServicioFacturacion->transaccion) &&
+                !$result->RespuestaServicioFacturacion->transaccion ) {
+                $venta->delete();
+                return response()->json(['message' => 'Error al enviar a impuestos: ' .
+                    (isset($result->RespuestaServicioFacturacion->mensajesList->descripcion) ?
+                        $result->RespuestaServicioFacturacion->mensajesList->descripcion : 'Error desconocido')
+                ], 400);
+            }
+
             if( isset($result->RespuestaServicioFacturacion) &&
                 isset($result->RespuestaServicioFacturacion->transaccion) &&
                 $result->RespuestaServicioFacturacion->transaccion ) {
                 $venta->cuf = $cuf;
                 $venta->leyenda = $leyendaRandom;
                 $venta->save();
+
+                // enviar correo
+                if ($cliente->email == null || $cliente->email == '') {
+                    return response()->json(
+                        $venta->load('ventaDetalles.producto')
+                    );
+                }
+                $details=[
+                    "title"=>"Factura",
+                    "body"=>"Gracias por su compra",
+                    "online"=>true,
+                    "anulado"=>false,
+                    "cuf"=>"",
+                    "numeroFactura"=>"",
+                    "sale_id"=>$venta->id,
+                    "carpeta"=>"archivos",
+                ];
+                Mail::to($cliente->email)->send(new TestMail($details));
+
+
             }
 
             return response()->json(
-                $venta->load('ventaDetalles.producto')
+                $venta->load('cliente','ventaDetalles.producto')
             );
         });
     }
@@ -423,6 +481,14 @@ class VentaController extends Controller{
         } else {
             return Cliente::create($request->all());
         }
+    }
+    private function xmlSafe(?string $s): string
+    {
+        $s = $s ?? '';
+        if (!mb_check_encoding($s, 'UTF-8')) {
+            $s = mb_convert_encoding($s, 'UTF-8', 'ISO-8859-1');
+        }
+        return htmlspecialchars($s, ENT_XML1 | ENT_COMPAT, 'UTF-8');
     }
     function index(Request $request){
         $fechaInicio = $request->fechaInicio;

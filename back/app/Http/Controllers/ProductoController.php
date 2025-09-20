@@ -77,14 +77,30 @@ class ProductoController extends Controller
 
     public function index(Request $request)
     {
-        $search = $request->search;
+        $search  = $request->search;
         $perPage = $request->per_page ?? 10;
+        $agencia = $request->agencia; // opcional: “Almacen”, “Challgua”, etc.
 
-        $productos = Producto::where(function ($query) use ($search) {
-            $query->where('nombre', 'like', "%$search%")
-                ->orWhere('descripcion', 'like', "%$search%")
-                ->orWhere('barra', 'like', "%$search%");
-        })
+        $productos = \App\Models\Producto::query()
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('nombre', 'like', "%{$search}%")
+                        ->orWhere('descripcion', 'like', "%{$search}%")
+                        ->orWhere('barra', 'like', "%{$search}%");
+                });
+            })
+            ->withSum([
+                'comprasDetalles as stock_disponible' => function ($q) use ($agencia) {
+                    $q->where('estado', 'Activo')
+                        ->whereNull('deleted_at'); // no anulados
+                    if (!empty($agencia)) {
+                        // filtra por agencia de la compra
+                        $q->whereHas('compra', function ($qc) use ($agencia) {
+                            $qc->where('agencia', $agencia);
+                        });
+                    }
+                }
+            ], 'cantidad_venta')
             ->orderBy('nombre')
             ->paginate($perPage);
 
