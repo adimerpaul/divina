@@ -107,6 +107,12 @@
                 </q-item-section>
                 <q-item-section>Imprimir</q-item-section>
               </q-item>
+              <q-item clickable v-ripple @click="verificarImpuestos(venta)" v-close-popup v-if="venta.cuf">
+                <q-item-section avatar>
+                  <q-icon name="fact_check" />
+                </q-item-section>
+                <q-item-section>Verificar impuestos</q-item-section>
+              </q-item>
               <q-item clickable v-ripple @click="anular(venta.id)" v-close-popup>
                 <q-item-section avatar>
                   <q-icon name="delete" />
@@ -142,7 +148,8 @@
             </div>
           </td>
           <td>
-              {{ venta.agencia }}
+<!--              {{ venta.agencia }}-->
+            <q-chip size="10px" :color="venta.cuf ? 'green' : 'red'" class="text-white" dense>{{ venta.cuf ? 'F' : 'R' }}</q-chip>
           </td>
         </tr>
       </template>
@@ -449,12 +456,25 @@ export default {
       })
     },
     imprimir(venta) {
-      Imprimir.nota(venta)
+      Imprimir.factura(venta)
     },
     tipoVentasChange(id) {
       this.$axios.put(`tipoVentasChange/${id}`).then(res => {
         this.$alert.success('Tipo de venta cambiado')
         this.ventasGet()
+      }).catch(error => {
+        this.$alert.error(error.response.data.message)
+      })
+    },
+    verificarImpuestos(venta) {
+      this.$axios.post(`verificarImpuestos/${venta.cuf}`).then(res => {
+        this.$q.dialog({
+          title: 'Verificación de impuestos',
+          fullWidth: true,
+          message: '<pre>' + JSON.stringify(res.data, null, 2) + '</pre>',
+          html: true,
+          ok: true
+        })
       }).catch(error => {
         this.$alert.error(error.response.data.message)
       })
