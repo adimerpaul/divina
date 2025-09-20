@@ -7,6 +7,45 @@ use App\Models\Cui;
 use Illuminate\Http\Request;
 
 class ImpuestoController extends Controller{
+    function verificarImpuestos($cuf){
+        $cui=Cui::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now());
+        if ($cui->count()==0){
+            return response()->json(['message' => 'El CUI no existe'], 400);
+        }
+        $cufd=Cufd::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now());
+        if ($cufd->count()==0){
+            return response()->json(['message' => 'El CUFD no existe'], 400);
+        }
+        $client = new \SoapClient(env("URL_SIAT")."ServicioFacturacionCompraVenta?WSDL",  [
+            'stream_context' => stream_context_create([
+                'http' => [
+                    'header' => "apikey: TokenApi ".env('TOKEN'),
+                ]
+            ]),
+            'cache_wsdl' => WSDL_CACHE_NONE,
+            'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
+            'trace' => 1,
+            'use' => SOAP_LITERAL,
+            'style' => SOAP_DOCUMENT,
+        ]);
+        $result= $client->verificacionEstadoFactura([
+            "SolicitudServicioVerificacionEstadoFactura"=>[
+                "codigoAmbiente"=>env('AMBIENTE'),
+                "codigoDocumentoSector"=>1,
+                "codigoEmision"=>1,
+                "codigoModalidad"=>env('MODALIDAD'),
+                "codigoPuntoVenta"=>0,
+                "codigoSistema"=>env('CODIGO_SISTEMA'),
+                "codigoSucursal"=>0,
+                "cufd"=>Cufd::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now())->orderBy('id','desc')->first()->codigo,
+                "cuis"=>Cui::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now())->orderBy('id','desc')->first()->codigo,
+                "nit"=>env('NIT'),
+                "tipoFacturaDocumento"=>1,
+                "cuf"=>$cuf,
+            ]
+        ]);
+        return response()->json($result, 200);
+    }
     public function generarCUI(){
         $codigoPuntoVenta = 0;
         $codigoSucursal = 0;
