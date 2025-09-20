@@ -113,6 +113,13 @@
                 </q-item-section>
                 <q-item-section>Verificar impuestos</q-item-section>
               </q-item>
+<!--              imprimis de impuesto-->
+              <q-item clickable v-ripple @click="imprimirImpuestos(venta)" v-close-popup v-if="venta.cuf">
+                <q-item-section avatar>
+                  <q-icon name="receipt_long" />
+                </q-item-section>
+                <q-item-section>Imprimir impuesto</q-item-section>
+              </q-item>
               <q-item clickable v-ripple @click="anular(venta.id)" v-close-popup>
                 <q-item-section avatar>
                   <q-icon name="delete" />
@@ -465,6 +472,9 @@ export default {
       }).catch(error => {
         this.$alert.error(error.response.data.message)
       })
+    },
+    imprimirImpuestos(venta) {
+      window.open(this.$store.env.url2+`consulta/QR?nit=${this.$store.env.nit}&cuf=${venta.cuf}&numero=${venta.id}&t=2`, '_blank')
     },
     verificarImpuestos(venta) {
       this.$axios.post(`verificarImpuestos/${venta.cuf}`).then(res => {

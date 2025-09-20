@@ -60,6 +60,7 @@ export class Imprimir {
         const numeroFactura  = venta.numeroFactura ?? venta.numero_factura ?? venta.id ?? '—';
         const fechaEmision   = venta.fechaEmision ?? (venta.fecha && venta.hora ? `${venta.fecha} ${venta.hora}` : '—');
         const clienteNombre  = venta.nombre ?? venta?.cliente?.nombre ?? 'SN';
+        const clienteComplemento = venta.complemento ?? venta?.cliente?.complemento ?? '';
         const clienteDoc     = venta.ci ?? venta?.cliente?.ci ?? '0';
         const codigoCliente  = venta.cliente_id ?? venta?.cliente?.id ?? '—';
         const puntoVenta     = env?.puntoVenta ?? 0;
@@ -140,7 +141,7 @@ hr{ border:0; border-top:1px dashed #000; margin:6px 0; }
 
   <table class="tbl fs10">
     <tr><td class="lbl">NOMBRE/RAZÓN SOCIAL</td><td class="val">${S(clienteNombre)}</td></tr>
-    <tr><td class="lbl">NIT/CI/CEX</td><td class="val">${S(clienteDoc)}</td></tr>
+    <tr><td class="lbl">NIT/CI/CEX</td><td class="val">${S(clienteDoc)}${S(clienteComplemento? '-' + clienteComplemento : '')}</td></tr>
     <tr><td class="lbl">NRO. CLIENTE</td><td class="val">${S(codigoCliente)}</td></tr>
     <tr><td class="lbl">FECHA DE EMISIÓN</td><td class="val">${S(fechaEmision)}</td></tr>
   </table>

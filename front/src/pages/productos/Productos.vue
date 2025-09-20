@@ -3,8 +3,12 @@
 <q-card flat bordered>
   <q-card-section class="q-pa-xs">
     <div class="text-right">
-      <q-btn color="primary" label="Descargar" no-caps  icon="fa-solid fa-file-excel" :loading="loading" @click="exportExcel" />
-      <q-btn color="green" label="Nuevo" @click="productoNew" no-caps  icon="add_circle_outline" :loading="loading" />
+      <div>
+<!--        actuliza btn-->
+        <q-btn color="primary" label="Actualizar" no-caps  icon="refresh" :loading="loading" @click="productosGet" />
+        <q-btn color="primary" label="Descargar" no-caps  icon="fa-solid fa-file-excel" :loading="loading" @click="exportExcel" />
+        <q-btn color="green" label="Nuevo" @click="productoNew" no-caps  icon="add_circle_outline" :loading="loading" />
+      </div>
       <q-input v-model="filter" label="Buscar" dense outlined debounce="300" @update:modelValue="productosGet">
         <template v-slot:append>
           <q-icon name="search" />

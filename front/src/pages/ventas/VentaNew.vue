@@ -172,16 +172,10 @@
               <div class="col-12 col-md-3 q-pa-xs">
                 <q-input v-model="venta.email" outlined dense label="Email" />
               </div>
-<!--              protected $fillable = [-->
-<!--              'nombre',-->
-<!--              'ci',-->
-<!--              'telefono',-->
-<!--              'direccion',-->
-<!--              'complemento',-->
-<!--              'codigoTipoDocumentoIdentidad',-->
-<!--              'email'-->
-<!--              ];-->
-<!--              <div class="col-12 col-md-3 q-pa-xs"></div>-->
+<!--              <div class="col-12 complemtno-->
+              <div class="col-12 col-md-3 q-pa-xs">
+                <q-input v-model="venta.complemento" outlined dense label="Complemento" />
+              </div>
               <div class="col-12 col-md-3 q-pa-xs">
                 <q-select v-model="venta.tipo_pago" outlined dense label="Tipo de pago" :options="['Efectivo', 'QR']"/>
               </div>
@@ -482,6 +476,7 @@ export default {
           if (res.data.nombre) this.venta.nombre = res.data.nombre;
           if (res.data.email) this.venta.email = res.data.email;
           if (res.data.codigoTipoDocumentoIdentidad) this.venta.codigoTipoDocumentoIdentidad =  parseInt(res.data.codigoTipoDocumentoIdentidad);
+          if (res.data.complemento) this.venta.complemento = res.data.complemento;
         })
         .catch((error) => console.error(error))
         .finally(() => (this.loading = false));
@@ -530,13 +525,14 @@ export default {
         nombre: this.venta.nombre,
         email: this.venta.email,
         codigoTipoDocumentoIdentidad: this.venta.codigoTipoDocumentoIdentidad,
+        complemento: this.venta.complemento,
         productos: this.productosVentas, // incluye compra_detalle_id por línea
         tipo_venta: this.venta.tipo_venta,
         tipo_pago: this.venta.tipo_pago,
         receta_id: this.receta_id,
       }).then((res) => {
         this.ventaDialog = false;
-        this.$alert?.success?.("Venta realizada con éxito") || this.$q.notify({ type:'positive', message:'Venta realizada con éxito' });
+        this.$alert?.success?.("Venta realizada con éxito");
         this.productosVentas = [];
 
         this.venta = {
