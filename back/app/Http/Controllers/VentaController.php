@@ -11,7 +11,8 @@ use App\Models\Venta;
 use App\Models\VentaDetalle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use SimpleXMLElement;
+use DOMDocument;
 class VentaController extends Controller{
     public function anular(Request $request, $id)
     {
@@ -99,6 +100,9 @@ class VentaController extends Controller{
             'productos.*.precio'            => 'required|numeric|min:0',
             'productos.*.compra_detalle_id' => 'nullable|integer|exists:compra_detalles,id',
         ]);
+//        if (isset($data['ci']) && ($data['ci'] === '0' || $data['ci'] === 0)) {
+//            return response()->json(['message' => 'El campo CI/NIT no puede ser cero.'], 422);
+//        }
 
         $user    = $request->user();
         $cliente = $this->clienteUpdateOrCreate($request);
@@ -123,7 +127,7 @@ class VentaController extends Controller{
             return response()->json(['message' => 'No existe CUFD para la venta!!'], 400);
         }
 
-        return DB::transaction(function () use ($data, $user, $cliente, $cufd) {
+        return DB::transaction(function () use ($data, $user, $cliente, $cufd, $cui) {
 
             // 1) Venta
             $venta = Venta::create([
@@ -234,7 +238,7 @@ class VentaController extends Controller{
             // 4) Total final
             $venta->update(['total' => $total]);
 
-            /*
+
             //5) mandar a impuestos
             $leyendas = [
                 "Ley N° 453: Puedes acceder a la reclamación cuando tus derechos han sido vulnerados.",
@@ -312,10 +316,10 @@ class VentaController extends Controller{
         <codigoPuntoVenta>$codigoPuntoVenta</codigoPuntoVenta>
         <fechaEmision>$fechaEnvio</fechaEmision>
         <nombreRazonSocial>" . utf8_encode(str_replace("&", "&amp;", $cliente->nombre)) . "</nombreRazonSocial>
-        <codigoTipoDocumentoIdentidad>" . $client->codigoTipoDocumentoIdentidad . "</codigoTipoDocumentoIdentidad>
-        <numeroDocumento>" . $client->numeroDocumento . "</numeroDocumento>
-        <complemento>" . $client->complemento . "</complemento>
-        <codigoCliente>" . $client->id . "</codigoCliente>
+        <codigoTipoDocumentoIdentidad>" . $cliente->codigoTipoDocumentoIdentidad . "</codigoTipoDocumentoIdentidad>
+        <numeroDocumento>" . $cliente->ci . "</numeroDocumento>
+        <complemento>" . $cliente->complemento . "</complemento>
+        <codigoCliente>" . $cliente->id . "</codigoCliente>
         <codigoMetodoPago>1</codigoMetodoPago>
         <numeroTarjeta xsi:nil='true'/>
         <montoTotal>" . $venta->total . "</montoTotal>
@@ -325,7 +329,7 @@ class VentaController extends Controller{
         <montoTotalMoneda>" . $venta->total . "</montoTotalMoneda>
         <montoGiftCard xsi:nil='true'/>
         <descuentoAdicional>0</descuentoAdicional>
-        <codigoExcepcion>" . ($client->codigoTipoDocumentoIdentidad == 5 ? 1 : 0) . "</codigoExcepcion>
+        <codigoExcepcion>" . ($cliente->codigoTipoDocumentoIdentidad == 5 ? 1 : 0) . "</codigoExcepcion>
         <cafc xsi:nil='true'/>
         <leyenda>$leyendaRandom</leyenda>
         <usuario>" . explode(" ", $user->name)[0] . "</usuario>
@@ -336,7 +340,73 @@ class VentaController extends Controller{
 
             $xml = new SimpleXMLElement($text);
             $dom = new DOMDocument('1.0');
-            */
+
+            $dom->preserveWhiteSpace = false;
+            $dom->formatOutput = true;
+            $dom->loadXML($xml->asXML());
+            $nameFile = 1;
+            $dom->save("archivos/" . $nameFile . '.xml');
+
+            $firmar = new Firmar();
+            $firmar->firmar("archivos/" . $nameFile . '.xml');
+
+
+            $xml = new DOMDocument();
+            $xml->load("archivos/" . $nameFile . '.xml');
+            if (!$xml->schemaValidate('facturaElectronicaCompraVenta.xsd')) {
+                echo "invalid";
+            }
+
+            $file = "archivos/" . $nameFile . '.xml';
+            $gzfile = "archivos/" . $nameFile . '.xml' . '.gz';
+            $fp = gzopen($gzfile, 'w9');
+            gzwrite($fp, file_get_contents($file));
+            gzclose($fp);
+
+            $archivo = $firmar->getFileGzip("archivos/" . $nameFile . '.xml' . '.gz');
+            $hashArchivo = hash('sha256', $archivo);
+
+            $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta?WSDL", [
+                'stream_context' => stream_context_create([
+                    'http' => [
+                        'header' => "apikey: TokenApi " . $token,
+                    ]
+                ]),
+                'cache_wsdl' => WSDL_CACHE_NONE,
+                'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
+                'trace' => 1,
+                'use' => SOAP_LITERAL,
+                'style' => SOAP_DOCUMENT,
+            ]);
+
+
+
+            $result = $client->recepcionFactura([
+                "SolicitudServicioRecepcionFactura" => [
+                    "codigoAmbiente" => $ambiente,
+                    "codigoDocumentoSector" => $codigoDocumentoSector,
+                    "codigoEmision" => $codigoEmision,
+                    "codigoModalidad" => $codigoModalidad,
+                    "codigoPuntoVenta" => $codigoPuntoVenta,
+                    "codigoSistema" => $codigoSistema,
+                    "codigoSucursal" => $codigoSucursal,
+                    "cufd" => $cufd,
+                    "cuis" => $cui->codigo,
+                    "nit" => $nit,
+                    "tipoFacturaDocumento" => $tipoFacturaDocumento,
+                    "archivo" => $archivo,
+                    "fechaEnvio" => $fechaEnvio,
+                    "hashArchivo" => $hashArchivo,
+                ]
+            ]);
+            error_log('result: ' . json_encode($result));
+
+            if( isset($result->RespuestaServicioFacturacion) &&
+                isset($result->RespuestaServicioFacturacion->transaccion) &&
+                $result->RespuestaServicioFacturacion->transaccion ) {
+                $venta->cuf = $cuf;
+                $venta->save();
+            }
 
             return response()->json(
                 $venta->load('ventaDetalles.producto')

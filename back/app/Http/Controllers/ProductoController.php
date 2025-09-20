@@ -42,35 +42,32 @@ class ProductoController extends Controller
     }
     function productosStock(Request $request)
     {
-        $search = $request->search;
-        $perPage = $request->per_page ?? 10;
+        $search  = trim($request->input('search', ''));
+        $perPage = (int) $request->input('per_page', 10);
 
-        $productos = Producto::where(function ($query) use ($search) {
-            $query->where('nombre', 'like', "%$search%")
-                ->orWhere('descripcion', 'like', "%$search%")
-                ->orWhere('barra', 'like', "%$search%");
-        })
-            ->orderBy('nombre')
-//            ->with('comprasDetalles')
+        $productos = Producto::query()
+            // Calcula el stock en SQL (suma de cantidad_venta con estado Activo)
+            ->withSum(
+                ['comprasDetalles as stock' => function ($q) {
+                    $q->where('estado', 'Activo');
+                }],
+                'cantidad_venta'
+            )
+            // Búsqueda
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('productos.nombre', 'like', "%{$search}%")
+                        ->orWhere('productos.descripcion', 'like', "%{$search}%")
+                        ->orWhere('productos.barra', 'like', "%{$search}%");
+                });
+            })
+            // Filtra solo los que tienen stock > 0 (en SQL, no en PHP)
+            ->having('stock', '>', 0)
+            ->orderBy('productos.nombre')
             ->paginate($perPage);
-        $productosRes = [];
-        foreach ($productos as $producto) {
-            $productoCompra = $producto->comprasDetalles()
-                ->where('estado', 'Activo')
-                ->sum('cantidad_venta');
-            if ($productoCompra > 0) {
-                $producto->stock = $productoCompra;
-                $productosRes[] = $producto;
-            }
-        }
-//        retorna con paginacion
-        return response()->json([
-            'data' => $productosRes,
-            'current_page' => $productos->currentPage(),
-            'last_page' => $productos->lastPage(),
-            'per_page' => $productos->perPage(),
-            'total' => count($productosRes),
-        ]);
+
+        // El paginator ya trae data, current_page, last_page, total, etc.
+        return response()->json($productos);
     }
 
     function productosAll()

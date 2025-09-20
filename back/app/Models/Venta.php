@@ -20,6 +20,7 @@ class Venta extends Model{
 //        'tipo_venta',
         'tipo_pago',
         'agencia',
+        'cuf',
 //        'pagado_interno'
     ];
     protected $hidden = ['created_at', 'updated_at', 'deleted_at'];

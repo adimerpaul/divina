@@ -26,6 +26,7 @@ return new class extends Migration
             $table->decimal('total', 8, 2)->nullable();
             $table->string('tipo_pago')->nullable()->default('Efectivo');
             $table->string('agencia')->nullable()->default('Challgua');
+            $table->string('cuf')->nullable();
 //            $table->boolean('pagado_interno')->nullable()->default(false);
             $table->softDeletes();
             $table->timestamps();
