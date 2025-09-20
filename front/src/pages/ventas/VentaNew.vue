@@ -153,7 +153,7 @@
 
     <!-- DIALOGO CONFIRMAR VENTA -->
     <q-dialog v-model="ventaDialog">
-      <q-card style="width: 650px; margin: 0 auto">
+      <q-card style="max-width: 750px; width: 90vw">
         <q-card-section class="q-pb-none row items-center">
           <div class="text-h6">Nueva venta</div>
           <q-space />
@@ -164,14 +164,35 @@
           <q-form @submit="submitVenta">
             <div class="row">
               <div class="col-12 col-md-3 q-pa-xs">
-                <q-input v-model="venta.nit" outlined dense label="CI/NIT" @update:modelValue="searchCliente" />
+                <q-input v-model="venta.nit" outlined dense label="CI/NIT" @update:modelValue="searchCliente" :debounce="500"/>
               </div>
               <div class="col-12 col-md-3 q-pa-xs">
                 <q-input v-model="venta.nombre" outlined dense label="Nombre" />
               </div>
-              <div class="col-12 col-md-3 q-pa-xs"></div>
               <div class="col-12 col-md-3 q-pa-xs">
-                <q-select v-model="venta.tipo_pago" outlined dense label="Tipo de pago" :options="['Efectivo', 'QR']" />
+                <q-input v-model="venta.email" outlined dense label="Email" />
+              </div>
+<!--              protected $fillable = [-->
+<!--              'nombre',-->
+<!--              'ci',-->
+<!--              'telefono',-->
+<!--              'direccion',-->
+<!--              'complemento',-->
+<!--              'codigoTipoDocumentoIdentidad',-->
+<!--              'email'-->
+<!--              ];-->
+<!--              <div class="col-12 col-md-3 q-pa-xs"></div>-->
+              <div class="col-12 col-md-3 q-pa-xs">
+                <q-select v-model="venta.tipo_pago" outlined dense label="Tipo de pago" :options="['Efectivo', 'QR']"/>
+              </div>
+              <div class="col-12 col-md-6 q-pa-xs">
+                <q-select
+                  v-model="venta.codigoTipoDocumentoIdentidad"
+                  outlined dense label="Tipo de documento"
+                  :options="codigoTipoDocumentoIdentidades"
+                  emit-value
+                  map-options
+                />
               </div>
 
               <div class="col-12 q-pa-xs">
@@ -234,7 +255,7 @@
 
     <!-- DIALOGO SELECCIONAR LOTE -->
     <q-dialog v-model="loteDialog" persistent>
-      <q-card style="width: 720px; max-width: 95vw">
+      <q-card style="max-width: 700px; width: 90vw">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Seleccionar lote</div>
           <q-space />
@@ -322,12 +343,20 @@ export default {
   name: "VentasNew",
   data() {
     return {
+      codigoTipoDocumentoIdentidades : [
+        { value: 1, label: 'CI - CEDULA DE IDENTIDAD' },
+        { value: 2, label: 'CEX - CED ULA DE IDENTIDAD DE EXTRANJERO' },
+        { value: 5, label: 'NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA' },
+        { value: 3, label: 'PAS - PASAPORTE' },
+        { value: 4, label: 'OD - OTRO DOCUMENTO DE IDENTIDAD' },
+      ],
       loading: false,
       ventaDialog: false,
       efectivo: '',
       venta: {
         nit: "0",
         nombre: "SN",
+        codigoTipoDocumentoIdentidad: 1,
         tipo_venta: "Interno",
         tipo_pago: "Efectivo",
       },
@@ -447,7 +476,12 @@ export default {
       this.loading = true;
       this.$axios.post("searchCliente", { nit: this.venta.nit })
         .then((res) => {
+          this.venta.nombre = "SN";
+          this.venta.email = "";
+          this.venta.codigoTipoDocumentoIdentidad = 1;
           if (res.data.nombre) this.venta.nombre = res.data.nombre;
+          if (res.data.email) this.venta.email = res.data.email;
+          if (res.data.codigoTipoDocumentoIdentidad) this.venta.codigoTipoDocumentoIdentidad =  parseInt(res.data.codigoTipoDocumentoIdentidad);
         })
         .catch((error) => console.error(error))
         .finally(() => (this.loading = false));
@@ -494,6 +528,8 @@ export default {
       this.$axios.post("ventas", {
         ci: this.venta.nit,
         nombre: this.venta.nombre,
+        email: this.venta.email,
+        codigoTipoDocumentoIdentidad: this.venta.codigoTipoDocumentoIdentidad,
         productos: this.productosVentas, // incluye compra_detalle_id por línea
         tipo_venta: this.venta.tipo_venta,
         tipo_pago: this.venta.tipo_pago,
@@ -502,6 +538,14 @@ export default {
         this.ventaDialog = false;
         this.$alert?.success?.("Venta realizada con éxito") || this.$q.notify({ type:'positive', message:'Venta realizada con éxito' });
         this.productosVentas = [];
+
+        this.venta = {
+          nit: "0",
+          nombre: "SN",
+          codigoTipoDocumentoIdentidad: 1,
+          tipo_venta: "Interno",
+          tipo_pago: "Efectivo",
+        };
         Imprimir.nota(res.data);
         this.receta_id = null;
         this.$nextTick(() => this.$refs.inputBuscarProducto?.focus());

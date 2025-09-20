@@ -88,6 +88,7 @@ export default {
       this.loading = true;
       this.$axios.post('impuestos/generar-cufd').then(response => {
         this.$alert.success('CUFD generado correctamente');
+        this.listCUFD();
       }).catch(error => {
         this.$alert.error(error.response.data.message || 'Error al generar CUFD');
       }).finally(() => {

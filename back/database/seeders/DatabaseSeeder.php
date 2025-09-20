@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cliente;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -55,5 +56,22 @@ class DatabaseSeeder extends Seeder
         $sqlContent = file_get_contents($sqlFile);
         DB::unprepared($sqlContent);
         error_log("Subcategorias seed executed");
+
+//        $table->string('nombre')->nullable();
+//        $table->string('ci')->nullable();
+//        $table->string('telefono')->nullable();
+//        $table->string('direccion')->nullable();
+//        $table->string('complemento')->nullable();
+//        $table->string('codigoTipoDocumentoIdentidad')->nullable();
+//        $table->string('email')->nullable();
+        $cliente = Cliente::create([
+            'nombre' => 'SN',
+            'ci' => '0',
+            'telefono' => '0',
+            'complemento' => '0',
+            'codigoTipoDocumentoIdentidad' => '1',
+            'direccion' => 'S/N',
+            'email' => '',
+        ]);
     }
 }
