@@ -122,9 +122,9 @@ class VentaController extends Controller{
             'productos.*.precio'            => 'required|numeric|min:0',
             'productos.*.compra_detalle_id' => 'nullable|integer|exists:compra_detalles,id',
         ]);
-//        if (isset($data['ci']) && ($data['ci'] === '0' || $data['ci'] === 0)) {
-//            return response()->json(['message' => 'El campo CI/NIT no puede ser cero.'], 422);
-//        }
+        if (isset($data['ci']) && ($data['ci'] === '0' || $data['ci'] === 0)) {
+            return response()->json(['message' => 'El campo CI/NIT no puede ser cero.'], 422);
+        }
 
         $user    = $request->user();
         $cliente = $this->clienteUpdateOrCreate($request);
@@ -395,7 +395,7 @@ class VentaController extends Controller{
             $archivo = $firmar->getFileGzip("archivos/" . $nameFile . '.xml' . '.gz');
             $hashArchivo = hash('sha256', $archivo);
             try {
-                $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVentaX?WSDL", [
+                $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta?WSDL", [
                     'stream_context' => stream_context_create([
                         'http' => [
                             'header' => "apikey: TokenApi " . $token,
@@ -445,6 +445,7 @@ class VentaController extends Controller{
                     isset($result->RespuestaServicioFacturacion->transaccion) &&
                     $result->RespuestaServicioFacturacion->transaccion ) {
                     $venta->cuf = $cuf;
+                    $venta->cufd = $cufd->codigo;
                     $venta->online = true;
                     $venta->leyenda = $leyendaRandom;
                     $venta->save();
@@ -468,7 +469,9 @@ class VentaController extends Controller{
                     Mail::to($cliente->email)->send(new TestMail($details));
                 }
             }catch (\Exception $e) {
+                error_log('Error: ' . $e->getMessage());
                 $venta->cuf = $cuf;
+                $venta->cufd = $cufd->codigo;
                 $venta->online = false;
                 $venta->leyenda = $leyendaRandom;
                 $venta->save();

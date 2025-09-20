@@ -100,7 +100,7 @@
       <template v-if="ventas.length != 0">
         <tr v-for="(venta, index) in ventas" :key="venta.id">
           <td>
-            <q-btn-dropdown color="primary" label="Opciones" no-caps dense size="10px">
+            <q-btn-dropdown color="primary" label="Opciones" no-caps dense size="10px" :loading="loading">
               <q-item clickable v-ripple @click="imprimir(venta)" v-close-popup>
                 <q-item-section avatar>
                   <q-icon name="print" />
@@ -125,6 +125,13 @@
                   <q-icon name="delete" />
                 </q-item-section>
                 <q-item-section>Anular</q-item-section>
+              </q-item>
+<!--              mandar a avento sifnificatico solo si olne es false-->
+              <q-item clickable v-ripple @click="dialogEventoClick(venta)" v-close-popup v-if="!venta.online">
+                <q-item-section avatar>
+                  <q-icon name="event" />
+                </q-item-section>
+                <q-item-section>Evento significativo</q-item-section>
               </q-item>
 <!--              <q-item clickable v-ripple @click="tipoVentasChange(venta.id)" v-close-popup>-->
 <!--                <q-item-section avatar>-->
@@ -170,6 +177,49 @@
       </tbody>
     </q-markup-table>
   </q-page>
+  <q-dialog v-model="dialogEvento" persistent>
+    <q-card>
+      <q-card-section>
+        <div class="text-h6">Seleccionar motivo del evento significativo</div>
+      </q-card-section>
+
+      <q-card-section>
+        <q-select
+          v-model="codigoMotivoEvento"
+          :options="eventos"
+          label="Motivo del evento"
+          emit-value
+          map-options
+          dense
+          outlined
+          style="width: 100%;"
+        />
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat label="Cancelar" color="primary" v-close-popup />
+        <q-btn
+          flat
+          label="Guardar"
+          color="primary"
+          :disabled="!codigoMotivoEvento"
+          @click="() => {
+            $axios.post('eventoSignificativo', {
+              venta_id: venta.id,
+              codigoMotivoEvento: codigoMotivoEvento,
+              descripcion: eventos.find(e => e.value === codigoMotivoEvento).label
+            }).then(res => {
+              $alert.success('Evento significativo registrado')
+              dialogEvento = false
+              ventasGet()
+            }).catch(error => {
+              $alert.error(error.response.data.message)
+            })
+          }"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
   <div id="myElement" class="hidden"></div>
 </template>
 <script>
@@ -180,6 +230,17 @@ export default {
   name: 'Ventas',
   data() {
     return {
+      dialogEvento : false,
+      codigoMotivoEvento: null,
+      eventos : [
+        {label: '1 - CORTE DEL SERVICIO DE INTERNET', value: 1},
+        {label: '2 - INACCESIBILIDAD AL SERVICIO WEB DE LA ADMINISTRACIÓN TRIBUTARIA', value: 2},
+        {label: '3 - INGRESO A ZONAS SIN INTERNET POR DESPLIEGUE DE PUNTO DE VENTA EN VEHICULOS AUTOMOTORES', value: 3},
+        {label: '4 - VENTA EN LUGARES SIN INTERNET', value: 4},
+        {label: '5 - VIRUS INFORMÁTICO O FALLA DE SOFTWARE', value: 5},
+        {label: '6 - CAMBIO DE INFRAESTRUCTURA DEL SISTEMA INFORMÁTICO DE FACTURACIÓN O FALLA DE HARDWARE', value: 6},
+        {label: '7 - CORTE DE SUMINISTRO DE ENERGIA ELECTRICA', value: 7},
+      ],
       ventas: [],
       venta: {},
       ventaDialog: false,
@@ -260,6 +321,7 @@ export default {
       window.open(this.$store.env.url2+`consulta/QR?nit=${this.$store.env.nit}&cuf=${venta.cuf}&numero=${venta.id}&t=2`, '_blank')
     },
     verificarImpuestos(venta) {
+      this.loading = true
       this.$axios.post(`verificarImpuestos/${venta.cuf}`).then(res => {
         this.$q.dialog({
           title: 'Verificación de impuestos',
@@ -270,10 +332,18 @@ export default {
         })
       }).catch(error => {
         this.$alert.error(error.response.data.message)
+      }).finally(() => {
+        this.loading = false
       })
+    },
+    dialogEventoClick(venta) {
+      this.dialogEvento = true
+      this.venta = venta
+      this.codigoMotivoEvento = null
     },
     anular(id) {
       this.$alert.dialog('¿Está seguro de anular la venta?').onOk(() => {
+        this.loading = true
         this.$axios.put(`ventasAnular/${id}`).then(res => {
           this.$alert.success('Venta anulada')
           this.ventasGet()
