@@ -553,7 +553,7 @@ export default {
       }).catch((error) => {
         console.error(error);
         this.$alert?.error?.(error?.response?.data?.message || "No se pudo realizar la venta")
-        || this.$q.notify({ type:'negative', message: error?.response?.data?.message || 'No se pudo realizar la venta' });
+        // || this.$q.notify({ type:'negative', message: error?.response?.data?.message || 'No se pudo realizar la venta' });
       }).finally(() => {
         this.loading = false;
       });
