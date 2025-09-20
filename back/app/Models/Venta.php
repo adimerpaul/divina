@@ -22,6 +22,7 @@ class Venta extends Model{
         'agencia',
         'cuf',
         'leyenda',
+        'online'
 //        'pagado_interno'
     ];
     protected $hidden = ['created_at', 'updated_at', 'deleted_at'];

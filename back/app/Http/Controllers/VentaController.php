@@ -150,6 +150,7 @@ class VentaController extends Controller{
         }
 
         return DB::transaction(function () use ($data, $user, $cliente, $cufd, $cui) {
+            error_log('Cliente: ' . json_encode($cliente));
 
             // 1) Venta
             $venta = Venta::create([
@@ -242,6 +243,7 @@ class VentaController extends Controller{
                         'lote'              => $l->lote,
                         'fecha_vencimiento' => $l->fecha_vencimiento,
                         'compra_detalle_id' => $l->id,
+                        'online'            => false,
                     ]);
 
                     // Descontar del lote
@@ -261,7 +263,7 @@ class VentaController extends Controller{
             $venta->update(['total' => $total]);
             if ($venta->ci === '0' || $venta->ci === 0 || $venta->ci === null || $venta->ci === '') {
                 return response()->json(
-                    $venta->load('ventaDetalles.producto')
+                    $venta->load('cliente','ventaDetalles.producto')
                 );
             }
 
@@ -342,7 +344,7 @@ class VentaController extends Controller{
         <direccion>" . env('DIRECCION') . "</direccion>
         <codigoPuntoVenta>$codigoPuntoVenta</codigoPuntoVenta>
         <fechaEmision>$fechaEnvio</fechaEmision>
-        <nombreRazonSocial>".$$this->xmlSafe($cliente->nombre)."</nombreRazonSocial>
+        <nombreRazonSocial>".$this->xmlSafe($cliente->nombre)."</nombreRazonSocial>
         <codigoTipoDocumentoIdentidad>" . $cliente->codigoTipoDocumentoIdentidad . "</codigoTipoDocumentoIdentidad>
         <numeroDocumento>" . $cliente->ci . "</numeroDocumento>
         <complemento>" . $cliente->complemento . "</complemento>
@@ -392,81 +394,96 @@ class VentaController extends Controller{
 
             $archivo = $firmar->getFileGzip("archivos/" . $nameFile . '.xml' . '.gz');
             $hashArchivo = hash('sha256', $archivo);
+            try {
+                $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVentaX?WSDL", [
+                    'stream_context' => stream_context_create([
+                        'http' => [
+                            'header' => "apikey: TokenApi " . $token,
+                        ]
+                    ]),
+                    'cache_wsdl' => WSDL_CACHE_NONE,
+                    'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
+                    'trace' => 1,
+                    'use' => SOAP_LITERAL,
+                    'style' => SOAP_DOCUMENT,
+                ]);
 
-            $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta?WSDL", [
-                'stream_context' => stream_context_create([
-                    'http' => [
-                        'header' => "apikey: TokenApi " . $token,
+
+
+                $result = $client->recepcionFactura([
+                    "SolicitudServicioRecepcionFactura" => [
+                        "codigoAmbiente" => $ambiente,
+                        "codigoDocumentoSector" => $codigoDocumentoSector,
+                        "codigoEmision" => $codigoEmision,
+                        "codigoModalidad" => $codigoModalidad,
+                        "codigoPuntoVenta" => $codigoPuntoVenta,
+                        "codigoSistema" => $codigoSistema,
+                        "codigoSucursal" => $codigoSucursal,
+                        "cufd" => $cufd,
+                        "cuis" => $cui->codigo,
+                        "nit" => $nit,
+                        "tipoFacturaDocumento" => $tipoFacturaDocumento,
+                        "archivo" => $archivo,
+                        "fechaEnvio" => $fechaEnvio,
+                        "hashArchivo" => $hashArchivo,
                     ]
-                ]),
-                'cache_wsdl' => WSDL_CACHE_NONE,
-                'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
-                'trace' => 1,
-                'use' => SOAP_LITERAL,
-                'style' => SOAP_DOCUMENT,
-            ]);
-
-
-
-            $result = $client->recepcionFactura([
-                "SolicitudServicioRecepcionFactura" => [
-                    "codigoAmbiente" => $ambiente,
-                    "codigoDocumentoSector" => $codigoDocumentoSector,
-                    "codigoEmision" => $codigoEmision,
-                    "codigoModalidad" => $codigoModalidad,
-                    "codigoPuntoVenta" => $codigoPuntoVenta,
-                    "codigoSistema" => $codigoSistema,
-                    "codigoSucursal" => $codigoSucursal,
-                    "cufd" => $cufd,
-                    "cuis" => $cui->codigo,
-                    "nit" => $nit,
-                    "tipoFacturaDocumento" => $tipoFacturaDocumento,
-                    "archivo" => $archivo,
-                    "fechaEnvio" => $fechaEnvio,
-                    "hashArchivo" => $hashArchivo,
-                ]
-            ]);
-            error_log('result: ' . json_encode($result));
+                ]);
+                error_log('result: ' . json_encode($result));
 
 //            result: {"RespuestaServicioFacturacion":{"codigoDescripcion":"RECHAZADA","codigoEstado":902,"mensajesList":{"codigo":1011,"descripcion":"EL COMPLEMENTO SOLO PUEDE SER ENVIADO CUANDO EL TIPO DE DOCUMENTO ES CARNET DE IDENTIDAD O CEDULA DE IDENTIDAD DE EXTRANJERO Complemento A1 tipoDocumento 5"},"transaccion":false}}
-            if( isset($result->RespuestaServicioFacturacion) &&
-                isset($result->RespuestaServicioFacturacion->transaccion) &&
-                !$result->RespuestaServicioFacturacion->transaccion ) {
-                $venta->delete();
-                return response()->json(['message' => 'Error al enviar a impuestos: ' .
-                    (isset($result->RespuestaServicioFacturacion->mensajesList->descripcion) ?
-                        $result->RespuestaServicioFacturacion->mensajesList->descripcion : 'Error desconocido')
-                ], 400);
-            }
+                if( isset($result->RespuestaServicioFacturacion) &&
+                    isset($result->RespuestaServicioFacturacion->transaccion) &&
+                    !$result->RespuestaServicioFacturacion->transaccion ) {
+                    $venta->delete();
+                    return response()->json(['message' => 'Error al enviar a impuestos: ' .
+                        (isset($result->RespuestaServicioFacturacion->mensajesList->descripcion) ?
+                            $result->RespuestaServicioFacturacion->mensajesList->descripcion : 'Error desconocido')
+                    ], 400);
+                }
 
-            if( isset($result->RespuestaServicioFacturacion) &&
-                isset($result->RespuestaServicioFacturacion->transaccion) &&
-                $result->RespuestaServicioFacturacion->transaccion ) {
+                if( isset($result->RespuestaServicioFacturacion) &&
+                    isset($result->RespuestaServicioFacturacion->transaccion) &&
+                    $result->RespuestaServicioFacturacion->transaccion ) {
+                    $venta->cuf = $cuf;
+                    $venta->online = true;
+                    $venta->leyenda = $leyendaRandom;
+                    $venta->save();
+
+                    // enviar correo
+                    if ($cliente->email == null || $cliente->email == '') {
+                        return response()->json(
+                            $venta->load('cliente','ventaDetalles.producto')
+                        );
+                    }
+                    $details=[
+                        "title"=>"Factura",
+                        "body"=>"Gracias por su compra",
+                        "online"=>true,
+                        "anulado"=>false,
+                        "cuf"=>"",
+                        "numeroFactura"=>"",
+                        "sale_id"=>$venta->id,
+                        "carpeta"=>"archivos",
+                    ];
+                    Mail::to($cliente->email)->send(new TestMail($details));
+                }
+            }catch (\Exception $e) {
                 $venta->cuf = $cuf;
+                $venta->online = false;
                 $venta->leyenda = $leyendaRandom;
                 $venta->save();
-
-                // enviar correo
-                if ($cliente->email == null || $cliente->email == '') {
-                    return response()->json(
-                        $venta->load('ventaDetalles.producto')
-                    );
-                }
-                $details=[
-                    "title"=>"Factura",
-                    "body"=>"Gracias por su compra",
-                    "online"=>true,
-                    "anulado"=>false,
-                    "cuf"=>"",
-                    "numeroFactura"=>"",
-                    "sale_id"=>$venta->id,
-                    "carpeta"=>"archivos",
+                $details = [
+                    "title" => "Factura",
+                    "body" => "Gracias por su compra",
+                    "online" => false,
+                    "anulado" => false,
+                    "cuf" => "",
+                    "numeroFactura" => "",
+                    "sale_id" => $venta->id,
+                    "carpeta" => "archivos",
                 ];
                 Mail::to($cliente->email)->send(new TestMail($details));
-
-
             }
-
             return response()->json(
                 $venta->load('cliente','ventaDetalles.producto')
             );
