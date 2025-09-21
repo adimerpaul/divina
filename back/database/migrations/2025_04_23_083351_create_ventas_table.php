@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('tipo_pago')->nullable()->default('Efectivo');
             $table->string('agencia')->nullable()->default('Challgua');
             $table->string('cuf')->nullable();
+            $table->string('cufd')->nullable();
             $table->string('leyenda')->nullable();
             $table->boolean('online')->nullable()->default(false);
 //            $table->boolean('pagado_interno')->nullable()->default(false);

@@ -395,7 +395,7 @@ class VentaController extends Controller{
             $archivo = $firmar->getFileGzip("archivos/" . $nameFile . '.xml' . '.gz');
             $hashArchivo = hash('sha256', $archivo);
             try {
-                $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVentaXXX?WSDL", [
+                $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta?WSDL", [
                     'stream_context' => stream_context_create([
                         'http' => [
                             'header' => "apikey: TokenApi " . $token,
