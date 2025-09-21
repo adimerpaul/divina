@@ -126,12 +126,18 @@
                 </q-item-section>
                 <q-item-section>Anular</q-item-section>
               </q-item>
-<!--              mandar a avento sifnificatico solo si olne es false-->
               <q-item clickable v-ripple @click="dialogEventoClick(venta)" v-close-popup v-if="!venta.online">
                 <q-item-section avatar>
                   <q-icon name="event" />
                 </q-item-section>
                 <q-item-section>Evento significativo</q-item-section>
+              </q-item>
+<!--              validarPaquete-->
+              <q-item clickable v-ripple @click="validarPaquete(venta)" v-close-popup v-if="!venta.online">
+                <q-item-section avatar>
+                  <q-icon name="verified" />
+                </q-item-section>
+                <q-item-section>Validar paquete</q-item-section>
               </q-item>
 <!--              <q-item clickable v-ripple @click="tipoVentasChange(venta.id)" v-close-popup>-->
 <!--                <q-item-section avatar>-->
@@ -330,6 +336,25 @@ export default {
           html: true,
           ok: true
         })
+      }).catch(error => {
+        this.$alert.error(error.response.data.message)
+      }).finally(() => {
+        this.loading = false
+      })
+    },
+    validarPaquete(venta) {
+      this.loading = true
+      this.$axios.post(`validarPaquete`,{
+        venta_id: venta.id
+      }).then(res => {
+        this.$q.dialog({
+          title: 'Validación de paquete',
+          fullWidth: true,
+          message: '<pre>' + JSON.stringify(res.data, null, 2) + '</pre>',
+          html: true,
+          ok: true
+        })
+        this.ventasGet()
       }).catch(error => {
         this.$alert.error(error.response.data.message)
       }).finally(() => {

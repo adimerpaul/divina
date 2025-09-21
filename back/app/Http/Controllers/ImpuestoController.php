@@ -7,8 +7,55 @@ use App\Models\Cui;
 use App\Models\EventoSignificativo;
 use App\Models\Venta;
 use Illuminate\Http\Request;
+use Phar;
+use PharData;
 
 class ImpuestoController extends Controller{
+    function facturacionOperaciones(){
+//        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:siat="https://siat.impuestos.gob.bo/">
+//   <soapenv:Header/>
+//   <soapenv:Body>
+//      <siat:consultaEventoSignificativo>
+//         <SolicitudConsultaEvento>
+//            <codigoAmbiente>?</codigoAmbiente>
+//            <!--Optional:-->
+//            <codigoPuntoVenta>?</codigoPuntoVenta>
+//            <codigoSistema>?</codigoSistema>
+//            <codigoSucursal>?</codigoSucursal>
+//            <cufd>?</cufd>
+//            <cuis>?</cuis>
+//            <fechaEvento>?</fechaEvento>
+//            <nit>?</nit>
+//         </SolicitudConsultaEvento>
+//      </siat:consultaEventoSignificativo>
+//   </soapenv:Body>
+//</soapenv:Envelope>
+        $client = new \SoapClient(env('URL_SIAT')."FacturacionOperaciones?WSDL",  [
+            'stream_context' => stream_context_create([
+                'http' => [
+                    'header' => "apikey: TokenApi ".env('TOKEN'),
+                ]
+            ]),
+            'cache_wsdl' => WSDL_CACHE_NONE,
+            'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
+            'trace' => 1,
+            'use' => SOAP_LITERAL,
+            'style' => SOAP_DOCUMENT,
+        ]);
+        $result= $client->consultaEventoSignificativo([
+            "SolicitudConsultaEvento"=>[
+                "codigoAmbiente"=>env('AMBIENTE'),
+                "codigoPuntoVenta"=>0,
+                "codigoSistema"=>env('CODIGO_SISTEMA'),
+                "codigoSucursal"=>0,
+                "cufd"=>Cufd::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now())->orderBy('id','desc')->first()->codigo,
+                "cuis"=>Cui::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now())->orderBy('id','desc')->first()->codigo,
+                "fechaEvento"=>date('Y-m-d'),
+                "nit"=>env('NIT'),
+            ]
+        ]);
+        return response()->json($result, 200);
+    }
     function eventoSignificativo(Request $request){
         $cui=Cui::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now());
         if ($cui->count()==0){
@@ -26,12 +73,86 @@ class ImpuestoController extends Controller{
         $venta = Venta::find($request->venta_id);
         $fecha = $venta->fecha;
         $hora = $venta->hora;
-        $fechaInicio = date('Y-m-d\TH:i:s', strtotime($fecha.' '.$hora.' -1 second'));
-        $fechaFin = date('Y-m-d\TH:i:s', strtotime($fecha.' '.$hora.' +1 second'));
-        $fechaInicio = date('Y-m-d\TH:i:s.000', strtotime($fechaInicio));
-        $fechaFin = date('Y-m-d\TH:i:s.000', strtotime($fechaFin));
 
-        $client = new \SoapClient(env('URL_SIAT')."FacturacionOperaciones?WSDL",  [
+//        verificar si existe en evento_significativo
+        $eventoSignificativo = EventoSignificativo::where('codigoPuntoVenta', $codigoPuntoVenta)
+            ->where('codigoSucursal', $codigoSucursal)
+            ->where('fechaHoraInicioEvento', '<=', date('Y-m-d H:i:s', strtotime($fecha.' '.$hora)))
+            ->where('fechaHoraFinEvento', '>=', date('Y-m-d H:i:s', strtotime($fecha.' '.$hora)))
+//            ->where('cufdEvento', $venta->cuf)
+            ->first();
+        if (!$eventoSignificativo){
+            $fechaInicio = date('Y-m-d\TH:i:s', strtotime($fecha.' '.$hora.' -1 second'));
+            $fechaFin = date('Y-m-d\TH:i:s', strtotime($fecha.' '.$hora.' +1 second'));
+            $fechaInicio = date('Y-m-d\TH:i:s.000', strtotime($fechaInicio));
+            $fechaFin = date('Y-m-d\TH:i:s.000', strtotime($fechaFin));
+
+            error_log("fechaInicio: ".$fechaInicio);
+            error_log("fechaFin: ".$fechaFin);
+
+            $client = new \SoapClient(env('URL_SIAT')."FacturacionOperaciones?WSDL",  [
+                'stream_context' => stream_context_create([
+                    'http' => [
+                        'header' => "apikey: TokenApi ".env('TOKEN'),
+                    ]
+                ]),
+                'cache_wsdl' => WSDL_CACHE_NONE,
+                'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
+                'trace' => 1,
+                'use' => SOAP_LITERAL,
+                'style' => SOAP_DOCUMENT,
+            ]);
+            try {
+                $result= $client->registroEventoSignificativo([
+                    "SolicitudEventoSignificativo"=>[
+                        "codigoAmbiente"=>env('AMBIENTE'),
+                        "codigoMotivoEvento"=>$request->codigoMotivoEvento,
+                        "codigoPuntoVenta"=>0,
+                        "codigoSistema"=>env('CODIGO_SISTEMA'),
+                        "codigoSucursal"=>0,
+                        "cufd"=>$cufd->codigo,
+                        "cufdEvento"=>$venta->cufd,
+                        "cuis"=>$cui->codigo,
+                        "descripcion"=>$request->descripcion,
+                        "fechaHoraFinEvento"=>$fechaFin,
+                        "fechaHoraInicioEvento"=>$fechaInicio,
+                        "nit"=>env('NIT'),
+                    ]
+                ]);
+                error_log("result: ".json_encode($result));
+
+                if ($result->RespuestaListaEventos->transaccion){
+                    $eventoSignificativo = new EventoSignificativo();
+                    $eventoSignificativo->codigoPuntoVenta=$codigoPuntoVenta;
+                    $eventoSignificativo->codigoSucursal=$codigoSucursal;
+                    $eventoSignificativo->fechaHoraFinEvento=date('Y-m-d H:i:s', strtotime($fecha .' '.$hora.' +1 second'));
+                    $eventoSignificativo->fechaHoraInicioEvento=date('Y-m-d H:i:s', strtotime($fecha .' '.$hora.' -1 second'));
+                    $eventoSignificativo->codigoMotivoEvento=$request->codigoMotivoEvento;
+                    $eventoSignificativo->descripcion=$request->descripcion;
+                    $eventoSignificativo->cufd=$cufd->codigo;
+                    $eventoSignificativo->cufdEvento=$venta->cuf;
+                    $eventoSignificativo->cufd_id=$cufd->id;
+                    $eventoSignificativo->codigoRecepcionEventoSignificativo=$result->RespuestaListaEventos->codigoRecepcionEventoSignificativo;
+                    $eventoSignificativo->save();
+                    return response()->json(['message' => 'Evento Significativo registrado correctamente!!'], 200);
+                }else{
+                    return response()->json(['message' => json_encode($result->RespuestaListaEventos->mensajesList) ], 500);
+                }
+            }catch (\Exception $e){
+                return response()->json(['message' => $e->getMessage()], 500);
+            }
+        }
+        $a = new PharData('archivos/archive.tar');
+        $ruta = "archivos/".$venta->id.".xml";
+        $a->addFile($ruta);
+        $a->compress(Phar::GZ);
+        unlink('archivos/archive.tar');
+        $firmar = new Firmar();
+        $archivo=$firmar->getFileGzip("archivos/archive.tar.gz");
+        $hashArchivo=hash('sha256', $archivo);
+        unlink('archivos/archive.tar.gz');
+
+        $client = new \SoapClient(env('URL_SIAT')."ServicioFacturacionCompraVenta?WSDL",  [
             'stream_context' => stream_context_create([
                 'http' => [
                     'header' => "apikey: TokenApi ".env('TOKEN'),
@@ -43,47 +164,100 @@ class ImpuestoController extends Controller{
             'use' => SOAP_LITERAL,
             'style' => SOAP_DOCUMENT,
         ]);
+        $codigoAmbiente=env('AMBIENTE');
+        $codigoDocumentoSector=1; // 1 compraventa 2 alquiler 23 prevaloradas
+        $codigoEmision=2; // 1 online 2 offline 3 masivo
+        $codigoModalidad=env('MODALIDAD'); //1 electronica 2 computarizada
+        $codigoPuntoVenta=0;//
+        $codigoSistema=env('CODIGO_SISTEMA');
+        $tipoFacturaDocumento=1; // 1 con credito fiscal 2 sin creditofical 3 nota debito credito
+        $result= $client->recepcionPaqueteFactura([
+            "SolicitudServicioRecepcionPaquete"=>[
+                "codigoAmbiente"=>$codigoAmbiente,
+                "codigoDocumentoSector"=>$codigoDocumentoSector,
+                "codigoEmision"=>$codigoEmision,
+                "codigoModalidad"=>$codigoModalidad,
+                "codigoPuntoVenta"=>$codigoPuntoVenta,
+                "codigoSistema"=>$codigoSistema,
+                "codigoSucursal"=>$codigoSucursal,
+                "cufd"=>$cufd->codigo,
+                "cuis"=>$cui->codigo,
+                "nit"=>env('NIT'),
+                "tipoFacturaDocumento"=>$tipoFacturaDocumento,
+                "archivo"=>$archivo,
+                "fechaEnvio"=>date('Y-m-d\TH:i:s.000'),
+                "hashArchivo"=>$hashArchivo,
+                "cafc"=>"XXX",
+                "cantidadFacturas"=>1,
+                "codigoEvento"=>$eventoSignificativo->codigoRecepcionEventoSignificativo,
+            ]
+        ]);
+        error_log("result: ".json_encode($result));
+        $eventoSignificativo->codigoRecepcion=$result->RespuestaServicioFacturacion->codigoRecepcion;
+        $eventoSignificativo->save();
+
+    }
+    public function validarPaquete(Request $request){
         try {
-            $result= $client->registroEventoSignificativo([
-                "SolicitudEventoSignificativo"=>[
+            $codigoPuntoVenta=0;
+            $codigoSucursal=0;
+            if (Cui::where('codigoPuntoVenta', $codigoPuntoVenta)->where('codigoSucursal', $codigoSucursal)->where('fechaVigencia','>=', now())->count()==0){
+                return response()->json(['message' => 'No existe CUI para la venta!!'], 400);
+            }
+            if (Cufd::where('codigoPuntoVenta', $codigoPuntoVenta)->where('codigoSucursal', $codigoSucursal)->where('fechaVigencia','>=', now())->count()==0){
+                return response()->json(['message' => 'No exite CUFD para la venta!!'], 400);
+            }
+            $cui=Cui::where('codigoPuntoVenta', $codigoPuntoVenta)->where('codigoSucursal', $codigoSucursal)->where('fechaVigencia','>=', now())->first();
+            $cufd=Cufd::where('codigoPuntoVenta', $codigoPuntoVenta)->where('codigoSucursal', $codigoSucursal)->where('fechaVigencia','>=', now())->first();
+
+            $client = new \SoapClient(env('URL_SIAT')."ServicioFacturacionCompraVenta?WSDL",  [
+                'stream_context' => stream_context_create([
+                    'http' => [
+                        'header' => "apikey: TokenApi ".env('TOKEN'),
+                    ]
+                ]),
+                'cache_wsdl' => WSDL_CACHE_NONE,
+                'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
+                'trace' => 1,
+                'use' => SOAP_LITERAL,
+                'style' => SOAP_DOCUMENT,
+            ]);
+
+            $venta = Venta::find($request->venta_id);
+
+            $eventoSignificativo = EventoSignificativo::
+                where('fechaHoraInicioEvento', '<=', date('Y-m-d H:i:s', strtotime($venta->fecha.' '.$venta->hora)))
+                ->where('fechaHoraFinEvento', '>=', date('Y-m-d H:i:s', strtotime($venta->fecha.' '.$venta->hora)))
+                ->first();
+
+
+            $result= $client->validacionRecepcionPaqueteFactura([
+                "SolicitudServicioValidacionRecepcionPaquete"=>[
                     "codigoAmbiente"=>env('AMBIENTE'),
-                    "codigoMotivoEvento"=>$request->codigoMotivoEvento,
+                    "codigoDocumentoSector"=>"1",
+                    "codigoEmision"=>2,
+                    "codigoModalidad"=>1,
                     "codigoPuntoVenta"=>0,
                     "codigoSistema"=>env('CODIGO_SISTEMA'),
                     "codigoSucursal"=>0,
                     "cufd"=>$cufd->codigo,
-                    "cufdEvento"=>$venta->cufd,
                     "cuis"=>$cui->codigo,
-                    "descripcion"=>$request->descripcion,
-                    "fechaHoraFinEvento"=>$fechaFin,
-                    "fechaHoraInicioEvento"=>$fechaInicio,
                     "nit"=>env('NIT'),
+                    "tipoFacturaDocumento"=>1,
+//                    "codigoRecepcion"=>$request->codigoRecepcion,
+                    "codigoRecepcion"=>$eventoSignificativo->codigoRecepcion
                 ]
             ]);
-            error_log("result: ".json_encode($result));
-
-            if ($result->RespuestaListaEventos->transaccion){
-                $eventoSignificativo = new EventoSignificativo();
-                $eventoSignificativo->codigoPuntoVenta=$codigoPuntoVenta;
-                $eventoSignificativo->codigoSucursal=$codigoSucursal;
-                $eventoSignificativo->fechaHoraFinEvento=date('Y-m-d H:i:s', strtotime($fecha .' '.$hora.' +1 second'));
-                $eventoSignificativo->fechaHoraInicioEvento=date('Y-m-d H:i:s', strtotime($fecha .' '.$hora.' -1 second'));
-                $eventoSignificativo->codigoMotivoEvento=$request->codigoMotivoEvento;
-                $eventoSignificativo->descripcion=$request->descripcion;
-                $eventoSignificativo->cufd=$cufd->codigo;
-                $eventoSignificativo->cufdEvento=$venta->cuf;
-                $eventoSignificativo->cufd_id=$cufd->id;
-                $eventoSignificativo->codigoRecepcionEventoSignificativo=$result->RespuestaListaEventos->codigoRecepcionEventoSignificativo;
-                $eventoSignificativo->save();
-                return response()->json(['message' => 'Evento Significativo registrado correctamente!!'], 200);
-            }else{
-                return response()->json(['message' => json_encode($result->RespuestaListaEventos->mensajesList) ], 500);
+//            "RespuestaServicioFacturacion": {
+//                "codigoDescripcion": "VALIDADA",
+            if ($result->RespuestaServicioFacturacion->codigoDescripcion=="VALIDADA"){
+                $venta->online=true;
+                $venta->save();
             }
-        }catch (\Exception $e){
-            return response()->json(['message' => $e->getMessage()], 500);
+            return  $result;
+        }catch (\Exception $e) {
+            return response()->json(["success"=>false,'message' => $e->getMessage()], 500);
         }
-
-
     }
     function anularImpuestos($cuf){
         $cui=Cui::where('codigoPuntoVenta',0)->where('codigoSucursal',0)->where('fechaVigencia','>=', now());

@@ -61,7 +61,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/impuestos/list-cufd', [App\Http\Controllers\ImpuestoController::class, 'listCUFD']);
     Route::post('/verificarImpuestos/{cuf}', [App\Http\Controllers\ImpuestoController::class, 'verificarImpuestos']);
     Route::post('/eventoSignificativo', [App\Http\Controllers\ImpuestoController::class, 'eventoSignificativo']);
+    Route::post('/validarPaquete', [App\Http\Controllers\ImpuestoController::class, 'validarPaquete']);
 });
 
 //Route test
 Route::get('/test', [App\Http\Controllers\TestController::class, 'index']);
+//facturacionOperaciones
+Route::get('/facturacionOperaciones', [App\Http\Controllers\ImpuestoController::class, 'facturacionOperaciones']);
