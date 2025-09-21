@@ -398,16 +398,17 @@ class VentaController extends Controller{
                 $client = new \SoapClient("https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta?WSDL", [
                     'stream_context' => stream_context_create([
                         'http' => [
-                            'header' => "apikey: TokenApi " . $token,
+                            'header'  => "apikey: TokenApi " . $token,
+                            'timeout' => 5, // ⏱ máximo 5 segundos
                         ]
                     ]),
-                    'cache_wsdl' => WSDL_CACHE_NONE,
-                    'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
-                    'trace' => 1,
-                    'use' => SOAP_LITERAL,
-                    'style' => SOAP_DOCUMENT,
+                    'cache_wsdl'   => WSDL_CACHE_NONE,
+                    'compression'  => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
+                    'trace'        => 1,
+                    'use'          => SOAP_LITERAL,
+                    'style'        => SOAP_DOCUMENT,
+                    'connection_timeout' => 5, // también para handshake inicial
                 ]);
-
 
 
                 $result = $client->recepcionFactura([
