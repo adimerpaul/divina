@@ -9,6 +9,7 @@ use App\Models\Venta;
 use Illuminate\Http\Request;
 use Phar;
 use PharData;
+use SoapClient;
 
 class ImpuestoController extends Controller{
     function facturacionOperaciones(){
