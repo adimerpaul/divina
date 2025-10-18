@@ -98,13 +98,16 @@ class CUF
      */
     public function base16(string $number, bool $touppercase = true): string
     {
-        $hexvalues = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
-        $hexval = '';
-        while ($number != '0') {
-            $hexval = $hexvalues[bcmod($number, '16')] . $hexval;
-            $number = bcdiv($number, '16', 0);
+        $hexvalues = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'];
+        if ($number === '' || $number === '0') {
+            return '0';
         }
-        return ($touppercase) ? strtoupper($hexval) : $hexval;
+        $hexval = '';
+        while ($number !== '0') {
+            $hexval = $hexvalues[\bcmod($number, '16')] . $hexval;
+            $number = \bcdiv($number, '16', 0);
+        }
+        return $touppercase ? \strtoupper($hexval) : $hexval;
     }
 
 }
